@@ -14,7 +14,7 @@
 
 constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
 
-constexpr int MAX_MAP_PER_SERVER = 512;
+constexpr int MAX_MAP_PER_SERVER = 2048;
 constexpr int MAX_INVENTORY = 100;
 constexpr int MAX_AMOUNT = 30000;
 constexpr int MAX_ZENY = 1000000000;     // 1G zeny
