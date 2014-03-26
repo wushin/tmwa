@@ -1558,9 +1558,9 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
     {
         if (extract(w4, record<','>(&savemap, &savex, &savey)))
         {
-            m->save.map_ = savemap;
-            m->save.x = savex;
-            m->save.y = savey;
+            m->resave.map_ = savemap;
+            m->resave.x = savex;
+            m->resave.y = savey;
         }
     }
     m->flag.set(mf, true);
