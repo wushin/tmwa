@@ -1554,6 +1554,15 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
             m->save.y = savey;
         }
     }
+    if (mf == MapFlag::RESAVE)
+    {
+        if (extract(w4, record<','>(&savemap, &savex, &savey)))
+        {
+            m->save.map_ = savemap;
+            m->save.x = savex;
+            m->save.y = savey;
+        }
+    }
     m->flag.set(mf, true);
 
     return 0;
