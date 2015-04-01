@@ -2179,24 +2179,36 @@ static
 void builtin_killer(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    sd->state.killer = !sd->state.killer;
+    int num = conv_num(st, &AARG(0));
 
-    if (sd->state.killer)
+    if (num == 1)
+    {
+        sd->state.killer = 1;
         clif_displaymessage(sd->sess, "Killer: On"_s);
+    }
     else
+    {
+        sd->state.killer = 0;
         clif_displaymessage(sd->sess, "Killer: Off"_s);
+    }
 }
 
 static
 void builtin_killable(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    sd->state.killable = !sd->state.killable;
+    int num = conv_num(st, &AARG(0));
 
-    if (sd->state.killable)
+    if (num == 1)
+    {
+        sd->state.killable = 1;
         clif_displaymessage(sd->sess, "Killable: On"_s);
+    }
     else
+    {
+        sd->state.killable = 0;
         clif_displaymessage(sd->sess, "Killable: Off"_s);
+    }
 }
 
 /*==========================================
@@ -3102,8 +3114,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmapflag, "Mi"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
-    BUILTIN(killer, ""_s, '\0'),
-    BUILTIN(killable, ""_s, '\0'),
+    BUILTIN(killer, "i"_s, '\0'),
+    BUILTIN(killable, "i"_s, '\0'),
     BUILTIN(emotion, "i"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(cmdothernpc, "ss"_s, '\0'),
