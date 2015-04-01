@@ -4030,15 +4030,33 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
 }
 
 static
+ATCE atcommand_pvp(Session *s, dumb_ptr<map_session_data> sd,
+        ZString)
+{
+    if (sd->pvp_timer || sd->state.killable || sd->state.killer)
+        return ATCE::OKAY;
+
+    sd->state.pvpon = !sd->state.pvpon;
+    pc_setpvptimer(sd, battle_config.player_pvp_time);
+
+    if (sd->state.pvpon)
+        clif_displaymessage(s, "##3PvP : ##BOn"_s);
+    else
+        clif_displaymessage(s, "##3PvP : ##BOff"_s);
+
+    return ATCE::OKAY;
+}
+
+static
 ATCE atcommand_killer(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    sd->special_state.killer = !sd->special_state.killer;
+    sd->state.killer = !sd->state.killer;
 
-    if (sd->special_state.killer)
-        clif_displaymessage(s, "You be a killa..."_s);
+    if (sd->state.killer)
+        clif_displaymessage(s, "##3Killer : ##BOn"_s);
     else
-        clif_displaymessage(s, "You gonna be own3d..."_s);
+        clif_displaymessage(s, "##3Killer : ##BOff"_s);
 
     return ATCE::OKAY;
 }
@@ -4056,9 +4074,9 @@ ATCE atcommand_charkiller(Session *s, dumb_ptr<map_session_data>,
     if (pl_sd == nullptr)
         return ATCE::EXIST;
 
-    pl_sd->special_state.killer = !pl_sd->special_state.killer;
+    pl_sd->state.killer = !pl_sd->state.killer;
 
-    if (pl_sd->special_state.killer)
+    if (pl_sd->state.killer)
     {
         clif_displaymessage(s, "The player is now a killer"_s);
         clif_displaymessage(pl_sd->sess, "You are now a killer"_s);
@@ -4076,12 +4094,12 @@ static
 ATCE atcommand_killable(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    sd->special_state.killable = !sd->special_state.killable;
+    sd->state.killable = !sd->state.killable;
 
-    if (sd->special_state.killable)
-        clif_displaymessage(s, "You gonna be own3d..."_s);
+    if (sd->state.killable)
+        clif_displaymessage(s, "##3Killable : ##BOn"_s);
     else
-        clif_displaymessage(s, "You be a killa..."_s);
+        clif_displaymessage(s, "##3Killable : ##BOff"_s);
 
     return ATCE::OKAY;
 }
@@ -4099,9 +4117,9 @@ ATCE atcommand_charkillable(Session *s, dumb_ptr<map_session_data>,
     if (pl_sd == nullptr)
         return ATCE::EXIST;
 
-    pl_sd->special_state.killable = !pl_sd->special_state.killable;
+    pl_sd->state.killable = !pl_sd->state.killable;
 
-    if (pl_sd->special_state.killable)
+    if (pl_sd->state.killable)
         clif_displaymessage(s, "The player is now killable"_s);
     else
         clif_displaymessage(s, "The player is no longer killable"_s);
@@ -5236,6 +5254,9 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"addwarp"_s, {"<mapname> <x> <y>"_s,
         80, atcommand_addwarp,
         "Create a new permanent warp"_s}},
+    {"pvp"_s, {""_s,
+        0, atcommand_pvp,
+        "Toggle your pvp flag"_s}},
     {"killer"_s, {""_s,
         60, atcommand_killer,
         "Toggle whether you are a killer"_s}},

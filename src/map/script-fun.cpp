@@ -2175,6 +2175,63 @@ void builtin_pvpoff(ScriptState *st)
     }
 }
 
+static
+void builtin_pvp(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    int flag;
+    flag = conv_num(st, &AARG(0));
+    if (flag > 1)
+        flag = 1;
+
+    sd->state.pvpon = flag;
+}
+
+static
+void builtin_getpvpflag(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    int num = conv_num(st, &AARG(0));
+
+    switch (num){
+        case 0:
+            num = sd->state.pvpon;
+            break;
+        case 1:
+            num = sd->state.killer;
+            break;
+        case 2:
+            num = sd->state.killable;
+            break;
+    }
+
+    push_int<ScriptDataInt>(st->stack, num);
+}
+
+static
+void builtin_killer(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    int flag;
+    flag = conv_num(st, &AARG(0));
+    if (flag > 1)
+        flag = 1;
+
+    sd->state.killer = flag;
+}
+
+static
+void builtin_killable(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    int flag;
+    flag = conv_num(st, &AARG(0));
+    if (flag > 1)
+        flag = 1;
+
+    sd->state.killable = flag;
+}
+
 /*==========================================
  *      NPCエモーション
  *------------------------------------------
@@ -3078,6 +3135,10 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmapflag, "Mi"_s, 'i'),
     BUILTIN(pvpon, "M"_s, '\0'),
     BUILTIN(pvpoff, "M"_s, '\0'),
+    BUILTIN(pvp, "i"_s, '\0'),
+    BUILTIN(getpvpflag, "i"_s, 'i'),
+    BUILTIN(killer, "i"_s, '\0'),
+    BUILTIN(killable, "i"_s, '\0'),
     BUILTIN(emotion, "i"_s, '\0'),
     BUILTIN(mapwarp, "MMxy"_s, '\0'),
     BUILTIN(cmdothernpc, "ss"_s, '\0'),
