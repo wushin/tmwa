@@ -290,12 +290,12 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
 
     if (src->bl_type != BL::PC)
         return 0;
-    if (src->special_state.killer)
+    if (src->state.killer)
         return 1;
 
     if (target->bl_type != BL::PC)
         return 0;
-    if (target->special_state.killable)
+    if (target->state.killable)
         return 1;
 
     return 0;
@@ -378,6 +378,8 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
         clif_updatestatus(sd, SP::SP);
 
     sd->heal_xp = 0;            // [Fate] Set gainable xp for healing this player to 0
+    sd->state.killer = 0;
+    sd->state.killable = 0;
 
     return 0;
 }
@@ -899,6 +901,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     int bl;
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
+    int b_killer = 0, b_killable = 0;
 
     nullpo_retz(sd);
 
@@ -927,6 +930,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
+    if (!pc_isdead(sd))
+        b_killer = sd->state.killer;
+        b_killable = sd->state.killable;
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
@@ -1399,6 +1405,11 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         clif_updatestatus(sd, SP::HP);
     if (b_sp != sd->status.sp)
         clif_updatestatus(sd, SP::SP);
+    if (b_killer != sd->state.killer)
+        sd->state.killable = b_killer;
+    if (b_killable != sd->state.killable)
+        sd->state.killable = b_killable;
+
 
     return 0;
 }
