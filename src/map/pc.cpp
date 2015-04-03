@@ -290,11 +290,9 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
 
     if (src->bl_type != BL::PC || target->bl_type != BL::PC)
         return 0;
-    if (src->state.killer)
+    if ((src->state.pvpchannel == 1) && (target->state.pvpchannel == 1) && !src->bl_m->flag.get(MapFlag::NOPVP))
         return 1;
-    if (target->state.killable)
-        return 1;
-    if (src->state.pvpon && target->state.pvpon && !src->bl_m->flag.get(MapFlag::NOPVP))
+    if ((src->state.pvpchannel > 1) && (target->state.pvpchannel == src->state.pvpchannel)) // this one does not respect NOPVP
         return 1;
     return 0;
 }
@@ -403,9 +401,6 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type)
         clif_updatestatus(sd, SP::SP);
 
     sd->heal_xp = 0;            // [Fate] Set gainable xp for healing this player to 0
-    sd->state.killer = 0;
-    sd->state.killable = 0;
-
     return 0;
 }
 
@@ -926,7 +921,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     int bl;
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
-    int b_pvpon = 0, b_killer = 0, b_killable = 0;
+    int b_pvpchannel = 0;
 
     nullpo_retz(sd);
 
@@ -955,10 +950,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
-    b_pvpon = sd->state.pvpon;
-    if (!pc_isdead(sd))
-        b_killer = sd->state.killer;
-        b_killable = sd->state.killable;
+    b_pvpchannel = sd->state.pvpchannel;
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
@@ -1431,13 +1423,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         clif_updatestatus(sd, SP::HP);
     if (b_sp != sd->status.sp)
         clif_updatestatus(sd, SP::SP);
-    if (b_pvpon != sd->state.pvpon)
-        sd->state.pvpon = b_pvpon;
-    if (b_killer != sd->state.killer)
-        sd->state.killable = b_killer;
-    if (b_killable != sd->state.killable)
-        sd->state.killable = b_killable;
-
+    if (b_pvpchannel != sd->state.pvpchannel)
+        sd->state.pvpchannel = b_pvpchannel;
 
     return 0;
 }
