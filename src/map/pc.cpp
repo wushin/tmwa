@@ -294,7 +294,7 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
         return 1;
     if (target->state.killable)
         return 1;
-    if (src->state.pvpon && target->state.pvpon)
+    if (src->state.pvpon && target->state.pvpon && !src->bl_m->flag.get(MapFlag::NOPVP))
         return 1;
     return 0;
 }
