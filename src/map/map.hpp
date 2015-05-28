@@ -87,13 +87,11 @@ private:
     // historically, a lot of code crashed.
     dumb_ptr<map_session_data> as_player();
     dumb_ptr<npc_data> as_npc();
-    dumb_ptr<mob_data> as_mob();
     dumb_ptr<flooritem_data> as_item();
     dumb_ptr<magic::invocation> as_spell();
 public:
     dumb_ptr<map_session_data> is_player();
     dumb_ptr<npc_data> is_npc();
-    dumb_ptr<mob_data> is_mob();
     dumb_ptr<flooritem_data> is_item();
     dumb_ptr<magic::invocation> is_spell();
 };
@@ -340,14 +338,78 @@ struct npc_data : block_list
 
 private:
     dumb_ptr<npc_data_script> as_script();
+    dumb_ptr<npc_data_mob> as_mob();
     dumb_ptr<npc_data_shop> as_shop();
     dumb_ptr<npc_data_warp> as_warp();
     dumb_ptr<npc_data_message> as_message();
 public:
     dumb_ptr<npc_data_script> is_script();
+    dumb_ptr<npc_data_mob> is_mob();
     dumb_ptr<npc_data_shop> is_shop();
     dumb_ptr<npc_data_warp> is_warp();
     dumb_ptr<npc_data_message> is_message();
+};
+
+class npc_data_mob : public npc_data
+{
+public:
+    struct
+    {
+        Borrowed<map_local> m = borrow(undefined_gat);
+        short x0, y0, xs, ys;
+        interval_t delay1, delay2;
+    } spawn;
+    struct
+    {
+        MS state;
+        MobSkillState skillstate;
+        unsigned attackable:1;
+        unsigned steal_flag:1;
+        unsigned steal_coin_flag:1;
+        unsigned skillcastcancel:1;
+        unsigned master_check:1;
+        unsigned change_walk_target:1;
+        unsigned walk_easy:1;
+        unsigned special_mob_ai:3;
+    } state;
+    Timer timer;
+       int hp;
+    BlockId target_id, attacked_id;
+    ATK target_lv;
+    struct walkpath_data walkpath;
+    tick_t next_walktime;
+    tick_t attackabletime;
+    tick_t last_deadtime, last_spawntime, last_thinktime;
+    tick_t canmove_tick;
+    short move_fail_count;
+    struct DmgLogEntry
+    {
+        BlockId id;
+        int dmg;
+    };
+    // logically a map ...
+    std::vector<DmgLogEntry> dmglogv;
+    std::vector<Item> lootitemv;
+
+    earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
+    short min_chase;
+    Timer deletetimer;
+
+    Timer skilltimer;
+    BlockId skilltarget;
+    short skillx, skilly;
+    SkillID skillid;
+    short skilllv;
+    struct mob_skill *skillidx;
+    std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
+    LevelElement def_ele;
+    BlockId master_id;
+    int master_dist;
+    int exclusion_src, exclusion_party;
+    NpcEvent npc_event;
+    // [Fate] mob-specific stats
+    earray<unsigned short, mob_stat, mob_stat::LAST> stats;
+    short size;
 };
 
 class npc_data_script : public npc_data
@@ -407,77 +469,6 @@ public:
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
 constexpr int MOB_XP_BONUS_SHIFT = 10;
-
-struct mob_data : block_list
-{
-    short n;
-    Species mob_class;
-    DIR dir;
-    MobMode mode;
-    struct
-    {
-        Borrowed<map_local> m = borrow(undefined_gat);
-        short x0, y0, xs, ys;
-        interval_t delay1, delay2;
-    } spawn;
-    MobName name;
-    struct
-    {
-        MS state;
-        MobSkillState skillstate;
-        unsigned attackable:1;
-        unsigned steal_flag:1;
-        unsigned steal_coin_flag:1;
-        unsigned skillcastcancel:1;
-        unsigned master_check:1;
-        unsigned change_walk_target:1;
-        unsigned walk_easy:1;
-        unsigned special_mob_ai:3;
-    } state;
-    Timer timer;
-    short to_x, to_y;
-    int hp;
-    BlockId target_id, attacked_id;
-    ATK target_lv;
-    struct walkpath_data walkpath;
-    tick_t next_walktime;
-    tick_t attackabletime;
-    tick_t last_deadtime, last_spawntime, last_thinktime;
-    tick_t canmove_tick;
-    short move_fail_count;
-    struct DmgLogEntry
-    {
-        BlockId id;
-        int dmg;
-    };
-    // logically a map ...
-    std::vector<DmgLogEntry> dmglogv;
-    std::vector<Item> lootitemv;
-
-    earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
-    Opt1 opt1;
-    Opt2 opt2;
-    Opt3 opt3;
-    Opt0 option;
-    short min_chase;
-    Timer deletetimer;
-
-    Timer skilltimer;
-    BlockId skilltarget;
-    short skillx, skilly;
-    SkillID skillid;
-    short skilllv;
-    struct mob_skill *skillidx;
-    std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
-    LevelElement def_ele;
-    BlockId master_id;
-    int master_dist;
-    int exclusion_src, exclusion_party;
-    NpcEvent npc_event;
-    // [Fate] mob-specific stats
-    earray<unsigned short, mob_stat, mob_stat::LAST> stats;
-    short size;
-};
 
 struct BlockLists
 {
@@ -621,7 +612,7 @@ dumb_ptr<npc_data> map_id_is_npc(BlockId id)
     return bl ? bl->is_npc() : nullptr;
 }
 inline
-dumb_ptr<mob_data> map_id_is_mob(BlockId id)
+dumb_ptr<npc_data> map_id_is_mob(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
     return bl ? bl->is_mob() : nullptr;
@@ -670,24 +661,24 @@ std::pair<uint16_t, uint16_t> map_randfreecell(Borrowed<map_local> m,
 
 inline dumb_ptr<map_session_data> block_list::as_player() { return dumb_ptr<map_session_data>(static_cast<map_session_data *>(this)) ; }
 inline dumb_ptr<npc_data> block_list::as_npc() { return dumb_ptr<npc_data>(static_cast<npc_data *>(this)) ; }
-inline dumb_ptr<mob_data> block_list::as_mob() { return dumb_ptr<mob_data>(static_cast<mob_data *>(this)) ; }
 inline dumb_ptr<flooritem_data> block_list::as_item() { return dumb_ptr<flooritem_data>(static_cast<flooritem_data *>(this)) ; }
 //inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)) ; }
 
 inline dumb_ptr<map_session_data> block_list::is_player() { return bl_type == BL::PC ? as_player() : nullptr; }
 inline dumb_ptr<npc_data> block_list::is_npc() { return bl_type == BL::NPC ? as_npc() : nullptr; }
-inline dumb_ptr<mob_data> block_list::is_mob() { return bl_type == BL::MOB ? as_mob() : nullptr; }
 inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::ITEM ? as_item() : nullptr; }
 //inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
 
 // struct invocation is defined in another header
 
 inline dumb_ptr<npc_data_script> npc_data::as_script() { return dumb_ptr<npc_data_script>(static_cast<npc_data_script *>(this)) ; }
+inline dumb_ptr<npc_data_mob> npc_data::as_mob() { return dumb_ptr<npc_data_mob>(static_cast<npc_data_mob *>(this)) ; }
 inline dumb_ptr<npc_data_shop> npc_data::as_shop() { return dumb_ptr<npc_data_shop>(static_cast<npc_data_shop *>(this)) ; }
 inline dumb_ptr<npc_data_warp> npc_data::as_warp() { return dumb_ptr<npc_data_warp>(static_cast<npc_data_warp *>(this)) ; }
 inline dumb_ptr<npc_data_message> npc_data::as_message() { return dumb_ptr<npc_data_message>(static_cast<npc_data_message *>(this)) ; }
 
 inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == NpcSubtype::SCRIPT ? as_script() : nullptr ; }
+inline dumb_ptr<npc_data_mob> npc_data::is_mob() { return npc_subtype == NpcSubtype::MOB ? as_mob() : nullptr ; }
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
