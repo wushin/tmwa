@@ -1493,7 +1493,7 @@ void builtin_killmonster(ScriptState *st)
             m,
             0, 0,
             m->xs, m->ys,
-            BL::MOB);
+            BL::NPC);
 }
 
 /*==========================================
@@ -2226,7 +2226,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
             m,
             0, 0,
             m->xs, m->ys,
-            BL::MOB);
+            BL::NPC);
 
     push_int<ScriptDataInt>(st->stack, (c - 1));
 

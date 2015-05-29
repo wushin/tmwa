@@ -1874,7 +1874,7 @@ void atcommand_killmonster_sub(Session *s, dumb_ptr<map_session_data> sd,
             map_id,
             0, 0,
             map_id->xs, map_id->ys,
-            BL::MOB);
+            BL::NPC);
 
     clif_displaymessage(s, "All monsters killed!"_s);
 }

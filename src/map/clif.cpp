@@ -2552,9 +2552,6 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
         case BL::NPC:
             clif_getareachar_npc(sd, bl->is_npc());
             break;
-        case BL::MOB:
-            clif_getareachar_mob(sd, bl->is_npc()->is_mob());
-            break;
         case BL::ITEM:
             clif_getareachar_item(sd, bl->is_item());
             break;
@@ -2597,9 +2594,6 @@ void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             if (bl->is_npc()->npc_class != INVISIBLE_CLASS)
                 clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->sess);
             break;
-        case BL::MOB:
-            clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->sess);
-            break;
         case BL::ITEM:
             clif_clearflooritem(bl->is_item(), sd->sess);
             break;
@@ -2629,9 +2623,6 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             break;
         case BL::NPC:
             clif_getareachar_npc(sd, bl->is_npc());
-            break;
-        case BL::MOB:
-            clif_getareachar_mob(sd, bl->is_npc()->is_mob());
             break;
         case BL::ITEM:
             clif_getareachar_item(sd, bl->is_item());
@@ -3694,16 +3685,6 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             // [fate] elim hashed out/invisible names for the client
             auto it = std::find(name.begin(), name.end(), '#');
             fixed_95.char_name = stringish<CharName>(name.xislice_h(it));
-            send_fpacket<0x0095, 30>(s, fixed_95);
-        }
-            break;
-        case BL::MOB:
-        {
-            dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
-
-            nullpo_retr(rv, md);
-
-            fixed_95.char_name = stringish<CharName>(md->name);
             send_fpacket<0x0095, 30>(s, fixed_95);
         }
             break;

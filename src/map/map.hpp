@@ -612,12 +612,6 @@ dumb_ptr<npc_data> map_id_is_npc(BlockId id)
     return bl ? bl->is_npc() : nullptr;
 }
 inline
-dumb_ptr<npc_data> map_id_is_mob(BlockId id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->is_mob() : nullptr;
-}
-inline
 dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);

@@ -100,6 +100,7 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         "WARP"_s,
         "SHOP"_s,
         "SCRIPT"_s,
+        "MOB"_s,
         "MESSAGE"_s,
     }};
     if (!nd->name)
@@ -318,7 +319,8 @@ bool npc_load_monster(ast::npc::Monster& monster)
 
         md->npc_event = eventname;
 
-        md->bl_type = BL::MOB;
+        md->bl_type = BL::NPC;
+        md->npc_subtype = NpcSubtype::MOB;
         map_addiddb(md);
         mob_spawn(md->bl_id);
 
