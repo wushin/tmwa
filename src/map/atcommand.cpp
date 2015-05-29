@@ -341,7 +341,7 @@ void atkillmonster_sub(dumb_ptr<block_list> bl, int flag)
 {
     nullpo_retv(bl);
 
-    dumb_ptr<mob_data> md = bl->is_mob();
+    dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
     if (flag)
         mob_damage(nullptr, md, md->hp, 2);
     else
@@ -4424,7 +4424,7 @@ ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
     y = sd->bl_y + random_::in(-5, 4);
 
     BlockId id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
-    dumb_ptr<mob_data> md = map_id_is_mob(id);
+    dumb_ptr<npc_data_mob> md = map_id_is_npc(id)->is_mob();
     if (md)
     {
         md->master_id = sd->bl_id;

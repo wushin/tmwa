@@ -54,14 +54,14 @@ int clif_spawnpc(dumb_ptr<map_session_data>);  //area
 int clif_spawnnpc(dumb_ptr<npc_data>); // area
 int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd,
         BlockId fake_npc_id);
-int clif_spawnmob(dumb_ptr<mob_data>); // area
+int clif_spawnmob(dumb_ptr<npc_data_mob>); // area
 int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
-int clif_movemob(dumb_ptr<mob_data>);  //area
+int clif_movemob(dumb_ptr<npc_data_mob>);  //area
 void clif_changemap(dumb_ptr<map_session_data>, MapName, int, int);  //self
 void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, IP4Address, int);  //self
 void clif_fixpos(dumb_ptr<block_list>); // area
-int clif_fixmobpos(dumb_ptr<mob_data> md);
+int clif_fixmobpos(dumb_ptr<npc_data_mob> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);
 int clif_npcbuysell(dumb_ptr<map_session_data>, BlockId);  //self
 int clif_buylist(dumb_ptr<map_session_data>, dumb_ptr<npc_data_shop>);   //self
@@ -129,8 +129,8 @@ int clif_storageclose(dumb_ptr<map_session_data> sd);
 // map_forallinmovearea callbacks
 void clif_pcinsight(dumb_ptr<block_list>, dumb_ptr<map_session_data>);
 void clif_pcoutsight(dumb_ptr<block_list>, dumb_ptr<map_session_data>);
-void clif_mobinsight(dumb_ptr<block_list>, dumb_ptr<mob_data>);
-void clif_moboutsight(dumb_ptr<block_list>, dumb_ptr<mob_data>);
+void clif_mobinsight(dumb_ptr<block_list>, dumb_ptr<npc_data_mob>);
+void clif_moboutsight(dumb_ptr<block_list>, dumb_ptr<npc_data_mob>);
 
 void clif_skillinfoblock(dumb_ptr<map_session_data> sd);
 int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num);

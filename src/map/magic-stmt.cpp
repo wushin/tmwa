@@ -459,7 +459,7 @@ void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int des
                 target->bl_x = destx;
                 target->bl_y = desty;
                 target->bl_m = destm;
-                clif_fixmobpos(target->is_mob());
+                clif_fixmobpos(target->is_npc()->is_mob());
                 break;
         }
     }
@@ -498,7 +498,7 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 
     if (subject->bl_type == BL::MOB)
     {
-        dumb_ptr<mob_data> mob = subject->is_mob();
+        dumb_ptr<npc_data_mob> mob = subject->is_npc()->is_mob();
 
         if (bool(mob->mode & MobMode::SUMMONED))
             mob_catch_delete(mob, BeingRemoveWhy::WARPED);
@@ -638,10 +638,10 @@ int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
     dumb_ptr<block_list> victim = ARGENTITY(2);
     int mode = ARGINT(1);
     dumb_ptr<block_list> target = ARGENTITY(0);
-    dumb_ptr<mob_data> other;
+    dumb_ptr<npc_data_mob> other;
 
     if (target->bl_type == BL::MOB)
-        other = target->is_mob();
+        other = target->is_npc()->is_mob();
     else
         return 0;
 
@@ -689,7 +689,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
         magic_random_location(&loc, area);
 
         BlockId mob_id;
-        dumb_ptr<mob_data> mob;
+        dumb_ptr<npc_data_mob> mob;
 
         mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
                 monster_id, 1, NpcEvent());
@@ -799,7 +799,7 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
         if (target->bl_type == BL::MOB)
         {
-            dumb_ptr<mob_data> mob = target->is_mob();
+            dumb_ptr<npc_data_mob> mob = target->is_npc()->is_mob();
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
                     mob->bl_id, mob->mob_class, damage_caused,

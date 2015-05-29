@@ -278,7 +278,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
 
     for (int i = 0; i < num; i++)
     {
-        dumb_ptr<mob_data> md;
+        dumb_ptr<npc_data_mob> md;
         md.new_();
 
         md->bl_prev = nullptr;

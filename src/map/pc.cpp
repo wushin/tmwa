@@ -424,9 +424,9 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC && bl->npc_subtype == NpcSubtype::MOB)
     {
-        dumb_ptr<mob_data> md = bl->is_mob();
+        dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
         if (md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
 

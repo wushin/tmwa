@@ -178,7 +178,7 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv)
 {
     dumb_ptr<map_session_data> sd = nullptr;
-    dumb_ptr<mob_data> md = nullptr;
+    dumb_ptr<npc_data_mob> md = nullptr;
 
     int luk;
 
@@ -321,7 +321,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
                 skill_additional_effect(src, bl, skillid, skilllv);
             if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
             {
-                dumb_ptr<mob_data> md = bl->is_mob();
+                dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
                 if (battle_config.mob_changetarget_byskill == 1)
                 {
                     BlockId target = md->target_id;
@@ -418,7 +418,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                 /* 個別にダメージを与える */
                 if (src->bl_type == BL::MOB)
                 {
-                    dumb_ptr<mob_data> mb = src->is_mob();
+                    dumb_ptr<npc_data_mob> mb = src->is_npc()->is_mob();
                     mb->hp = skill_area_temp_hp;
                     if (bl->bl_id != skill_area_temp_id)
                         skill_attack(BF::MISC, src, src, bl,
@@ -429,7 +429,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             }
             else
             {
-                dumb_ptr<mob_data> md = src->is_mob();
+                dumb_ptr<npc_data_mob> md = src->is_npc()->is_mob();
                 {
                     skill_area_temp_id = bl->bl_id;
                     skill_area_temp_hp = battle_get_hp(src);
@@ -486,8 +486,8 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 {
     dumb_ptr<map_session_data> sd = nullptr;
     dumb_ptr<map_session_data> dstsd = nullptr;
-    dumb_ptr<mob_data> md = nullptr;
-    dumb_ptr<mob_data> dstmd = nullptr;
+    dumb_ptr<npc_data_mob> md = nullptr;
+    dumb_ptr<npc_data_mob> dstmd = nullptr;
     int sc_def_vit, sc_def_mdef, strip_fix;
 
     nullpo_retr(1, src);
@@ -558,7 +558,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
  */
 interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 {
-    dumb_ptr<mob_data> md;        // [Valaris]
+    dumb_ptr<npc_data_mob> md;        // [Valaris]
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int dex;
     int castrate = 100;
@@ -650,7 +650,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
     }
     else if (bl->bl_type == BL::MOB)
     {
-        dumb_ptr<mob_data> md = bl->is_mob();
+        dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
         if (md->skilltimer)
         {
             md->skilltimer.cancel();
@@ -853,7 +853,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
                         }
                         else if (bl->bl_type == BL::MOB)
                         {
-                            dumb_ptr<mob_data> md = bl->is_mob();
+                            dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
                             hp = 3 + hp / 200;
                             md->hp -= hp;
                         }

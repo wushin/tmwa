@@ -769,7 +769,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
  *------------------------------------------
  */
 static
-void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_mob0078(dumb_ptr<npc_data_mob> md, Buffer& buf)
 {
     nullpo_retv(md);
     int max_hp = md->stats[mob_stat::MAX_HP];
@@ -801,7 +801,7 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
  *------------------------------------------
  */
 static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_mob007b(dumb_ptr<npc_data_mob> md, Buffer& buf)
 {
     nullpo_retv(md);
     int max_hp = md->stats[mob_stat::MAX_HP];
@@ -850,7 +850,7 @@ void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
 }
 
 static
-int clif_0225_being_move3(dumb_ptr<mob_data> md)
+int clif_0225_being_move3(dumb_ptr<npc_data_mob> md)
 {
     Packet_Head<0x0225> head_225;
     std::vector<Packet_Repeat<0x0225>> repeat_225;
@@ -1019,7 +1019,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
  *
  *------------------------------------------
  */
-int clif_spawnmob(dumb_ptr<mob_data> md)
+int clif_spawnmob(dumb_ptr<npc_data_mob> md)
 {
     nullpo_retz(md);
 
@@ -2393,7 +2393,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
  * 移動停止
  *------------------------------------------
  */
-int clif_movemob(dumb_ptr<mob_data> md)
+int clif_movemob(dumb_ptr<npc_data_mob> md)
 {
     nullpo_retz(md);
 
@@ -2409,7 +2409,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
  * モンスターの位置修正
  *------------------------------------------
  */
-int clif_fixmobpos(dumb_ptr<mob_data> md)
+int clif_fixmobpos(dumb_ptr<npc_data_mob> md)
 {
     nullpo_retz(md);
 
@@ -2490,7 +2490,7 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  *------------------------------------------
  */
 static
-void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
+void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_mob> md)
 {
     nullpo_retv(sd);
     nullpo_retv(md);
@@ -2553,7 +2553,7 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             clif_getareachar_npc(sd, bl->is_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, bl->is_mob());
+            clif_getareachar_mob(sd, bl->is_npc()->is_mob());
             break;
         case BL::ITEM:
             clif_getareachar_item(sd, bl->is_item());
@@ -2631,7 +2631,7 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             clif_getareachar_npc(sd, bl->is_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, bl->is_mob());
+            clif_getareachar_mob(sd, bl->is_npc()->is_mob());
             break;
         case BL::ITEM:
             clif_getareachar_item(sd, bl->is_item());
@@ -2643,7 +2643,7 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
  *
  *------------------------------------------
  */
-void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
+void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<npc_data_mob> md)
 {
     dumb_ptr<map_session_data> sd;
 
@@ -2661,7 +2661,7 @@ void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
  *
  *------------------------------------------
  */
-void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
+void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<npc_data_mob> md)
 {
     dumb_ptr<map_session_data> sd;
 
@@ -3699,7 +3699,7 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
             break;
         case BL::MOB:
         {
-            dumb_ptr<mob_data> md = bl->is_mob();
+            dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
 
             nullpo_retr(rv, md);
 

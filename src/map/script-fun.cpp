@@ -1463,7 +1463,7 @@ void builtin_areamonster(ScriptState *st)
 static
 void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 {
-    dumb_ptr<mob_data> md = bl->is_mob();
+    dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
     if (event)
     {
         if (event == md->npc_event)
