@@ -88,14 +88,14 @@ int mob_makedummymobdb(Species);
 static
 void mob_timer(TimerData *, tick_t, BlockId, unsigned char);
 static
-int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
+int mobskill_use_id(dumb_ptr<npc_data> md, dumb_ptr<block_list> target,
         mob_skill& skill_idx);
 
 /*==========================================
  * Mob is searched with a name.
  *------------------------------------------
  */
-Species mobdb_searchname(MobName str)
+Species mobdb_searchname(NpcName str)
 {
     int i;
 
@@ -121,14 +121,14 @@ Species mobdb_checkid(Species id)
 }
 
 static
-void mob_init(dumb_ptr<mob_data> md);
+void mob_init(dumb_ptr<npc_data> md);
 
 /*==========================================
  * The minimum data set for MOB spawning
  *------------------------------------------
  */
 static
-void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, Species mob_class)
+void mob_spawn_dataset(dumb_ptr<npc_data> md, NpcName mobname, Species mob_class)
 {
     nullpo_retv(md);
 
@@ -143,6 +143,7 @@ void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, Species mob_class
     md->bl_next = nullptr;
     md->n = 0;
     md->mob_class = mob_class;
+    md->npc_class = mob_class;
     md->bl_id = npc_get_new_npc_id();
 
     really_memzero_this(&md->state);
@@ -228,7 +229,7 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_base //=
  */
 // intensity: positive: strengthen, negative: weaken.  256 = 100%.
 static
-void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
+void mob_mutate(dumb_ptr<npc_data> md, mob_stat stat, int intensity)
 {
     int old_stat;
     int new_stat;
@@ -341,7 +342,7 @@ int mob_gen_exp(mob_db_ *mob)
 }
 
 static
-void mob_init(dumb_ptr<mob_data> md)
+void mob_init(dumb_ptr<npc_data> md)
 {
     int i;
     const Species mob_class = md->mob_class;
@@ -407,10 +408,10 @@ void mob_init(dumb_ptr<mob_data> md)
  */
 BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         MapName mapname, int x, int y,
-        MobName mobname, Species mob_class, int amount,
+        NpcName mobname, Species mob_class, int amount,
         NpcEvent event)
 {
-    dumb_ptr<mob_data> md = nullptr;
+    dumb_ptr<npc_data> md = nullptr;
     int count;
 
     P<map_local> m = (
@@ -453,7 +454,8 @@ BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
 
         md->npc_event = event;
 
-        md->bl_type = BL::MOB;
+        md->bl_type = BL::NPC;
+        md->npc_subtype = NpcSubtype::MOB;
         map_addiddb(md);
         mob_spawn(md->bl_id);
     }
@@ -466,7 +468,7 @@ BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
  */
 BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         MapName mapname, int x0, int y0, int x1, int y1,
-        MobName mobname, Species mob_class, int amount,
+        NpcName mobname, Species mob_class, int amount,
         NpcEvent event)
 {
     int x, y, i, max, lx = -1, ly = -1;
@@ -563,7 +565,7 @@ int mob_get_equip(Species mob_class)   // mob equip [Valaris]
  *------------------------------------------
  */
 static
-int mob_can_move(dumb_ptr<mob_data> md)
+int mob_can_move(dumb_ptr<npc_data> md)
 {
     nullpo_retz(md);
 
@@ -579,7 +581,7 @@ int mob_can_move(dumb_ptr<mob_data> md)
  *------------------------------------------
  */
 static
-interval_t calc_next_walk_step(dumb_ptr<mob_data> md)
+interval_t calc_next_walk_step(dumb_ptr<npc_data> md)
 {
     nullpo_retr(interval_t::zero(), md);
 
@@ -591,14 +593,14 @@ interval_t calc_next_walk_step(dumb_ptr<mob_data> md)
 }
 
 static
-int mob_walktoxy_sub(dumb_ptr<mob_data> md);
+int mob_walktoxy_sub(dumb_ptr<npc_data> md);
 
 /*==========================================
  * Mob Walk processing
  *------------------------------------------
  */
 static
-int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
+int mob_walk(dumb_ptr<npc_data> md, tick_t tick, unsigned char data)
 {
     int moveblock;
     int x, y, dx, dy;
@@ -696,11 +698,11 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
  *------------------------------------------
  */
 static
-int mob_check_attack(dumb_ptr<mob_data> md)
+int mob_check_attack(dumb_ptr<npc_data> md)
 {
     dumb_ptr<block_list> tbl = nullptr;
     dumb_ptr<map_session_data> tsd = nullptr;
-    dumb_ptr<mob_data> tmd = nullptr;
+    dumb_ptr<npc_data> tmd = nullptr;
 
     MobMode mode;
     int range;
@@ -726,8 +728,8 @@ int mob_check_attack(dumb_ptr<mob_data> md)
 
     if (tbl->bl_type == BL::PC)
         tsd = tbl->is_player();
-    else if (tbl->bl_type == BL::MOB)
-        tmd = tbl->is_mob();
+    else if (tbl->bl_type == BL::NPC)
+        tmd = tbl->is_npc();
     else
         return 0;
 
@@ -798,7 +800,7 @@ void mob_ancillary_attack(dumb_ptr<block_list> bl,
  *------------------------------------------
  */
 static
-int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
+int mob_attack(dumb_ptr<npc_data> md, tick_t tick)
 {
     dumb_ptr<block_list> tbl = nullptr;
 
@@ -859,7 +861,7 @@ void mob_stopattacked(dumb_ptr<map_session_data> sd, BlockId id)
  *------------------------------------------
  */
 static
-int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
+int mob_changestate(dumb_ptr<npc_data> md, MS state, bool type)
 {
     nullpo_retz(md);
 
@@ -933,7 +935,7 @@ int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
 static
 void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
 {
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
     dumb_ptr<block_list> bl;
     bl = map_id2bl(id);
     if (bl == nullptr)
@@ -941,10 +943,10 @@ void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
         return;
     }
 
-    if (bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (bl->bl_type == BL::NUL || bl->bl_type != BL::NPC)
         return;
 
-    md = bl->is_mob();
+    md = bl->is_npc();
 
     if (md->bl_prev == nullptr || md->state.state == MS::DEAD)
         return;
@@ -972,7 +974,7 @@ void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
  *------------------------------------------
  */
 static
-int mob_walktoxy_sub(dumb_ptr<mob_data> md)
+int mob_walktoxy_sub(dumb_ptr<npc_data> md)
 {
     struct walkpath_data wpd;
 
@@ -995,7 +997,7 @@ int mob_walktoxy_sub(dumb_ptr<mob_data> md)
  *------------------------------------------
  */
 static
-int mob_walktoxy(dumb_ptr<mob_data> md, int x, int y, int easy)
+int mob_walktoxy(dumb_ptr<npc_data> md, int x, int y, int easy)
 {
     struct walkpath_data wpd;
 
@@ -1037,19 +1039,19 @@ void mob_delayspawn(TimerData *, tick_t, BlockId m)
 static
 int mob_setdelayspawn(BlockId id)
 {
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
     dumb_ptr<block_list> bl;
 
     if ((bl = map_id2bl(id)) == nullptr)
         return -1;
 
-    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::NPC)
         return -1;
 
-    md = bl->is_mob();
+    md = bl->is_npc();
     nullpo_retr(-1, md);
 
-    if (!md || md->bl_type != BL::MOB)
+    if (!md || md->bl_type != BL::NPC)
         return -1;
 
     // Processing of MOB which is not revitalized
@@ -1083,19 +1085,19 @@ int mob_spawn(BlockId id)
 {
     int x = 0, y = 0;
     tick_t tick = gettick();
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
     dumb_ptr<block_list> bl;
 
     bl = map_id2bl(id);
     nullpo_retr(-1, bl);
 
-    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::NPC)
         return -1;
 
-    md = bl->is_mob();
+    md = bl->is_npc();
     nullpo_retr(-1, md);
 
-    if (!md || md->bl_type == BL::NUL || md->bl_type != BL::MOB)
+    if (!md || md->bl_type == BL::NUL || md->bl_type != BL::NPC)
         return -1;
 
     md->last_spawntime = tick;
@@ -1214,7 +1216,7 @@ int distance(int x0, int y0, int x1, int y1)
  * The stop of MOB's attack
  *------------------------------------------
  */
-int mob_stopattack(dumb_ptr<mob_data> md)
+int mob_stopattack(dumb_ptr<npc_data> md)
 {
     md->target_id = BlockId();
     md->state.attackable = false;
@@ -1226,7 +1228,7 @@ int mob_stopattack(dumb_ptr<mob_data> md)
  * The stop of MOB's walking
  *------------------------------------------
  */
-int mob_stop_walking(dumb_ptr<mob_data> md, int type)
+int mob_stop_walking(dumb_ptr<npc_data> md, int type)
 {
     nullpo_retz(md);
 
@@ -1275,7 +1277,7 @@ int mob_stop_walking(dumb_ptr<mob_data> md, int type)
  *------------------------------------------
  */
 static
-int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
+int mob_can_reach(dumb_ptr<npc_data> md, dumb_ptr<block_list> bl, int range)
 {
     int dx, dy;
     struct walkpath_data wpd;
@@ -1311,7 +1313,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
         -1)
         return 1;
 
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::NPC)
         return 0;
 
     // It judges whether it can adjoin or not.
@@ -1332,7 +1334,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
  * Determination for an attack of a monster
  *------------------------------------------
  */
-int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
+int mob_target(dumb_ptr<npc_data> md, dumb_ptr<block_list> bl, int dist)
 {
     dumb_ptr<map_session_data> sd;
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -1382,7 +1384,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
         }
 
         md->target_id = bl->bl_id; // Since there was no disturbance, it locks on to target.bl_
-        if (bl->bl_type == BL::PC || bl->bl_type == BL::MOB)
+        if (bl->bl_type == BL::PC || bl->bl_type == BL::NPC)
             md->state.attackable = true;
         else
             md->state.attackable = false;
@@ -1399,10 +1401,10 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
  */
 static
 void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
-        dumb_ptr<mob_data> smd, int *pcc)
+        dumb_ptr<npc_data> smd, int *pcc)
 {
     dumb_ptr<map_session_data> tsd = nullptr;
-    dumb_ptr<mob_data> tmd = nullptr;
+    dumb_ptr<npc_data> tmd = nullptr;
     MobMode mode;
     int dist;
 
@@ -1412,8 +1414,8 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
 
     if (bl->bl_type == BL::PC)
         tsd = bl->is_player();
-    else if (bl->bl_type == BL::MOB)
-        tmd = bl->is_mob();
+    else if (bl->bl_type == BL::NPC)
+        tmd = bl->is_npc();
     else
         return;
 
@@ -1480,7 +1482,7 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, int *itc)
+void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<npc_data> md, int *itc)
 {
     MobMode mode;
     int dist;
@@ -1519,12 +1521,14 @@ void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, dumb_ptr<block_list> target)
+void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<npc_data> md, dumb_ptr<block_list> target)
 {
-    dumb_ptr<mob_data> tmd;
+    dumb_ptr<npc_data> tmd;
 
     nullpo_retv(bl);
-    tmd = bl->is_mob();
+    tmd = bl->is_npc();
+    if (tmd == nullptr)
+        return;
     nullpo_retv(md);
     nullpo_retv(target);
 
@@ -1551,9 +1555,9 @@ void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
  *------------------------------------------
  */
 static
-int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
+int mob_ai_sub_hard_slavemob(dumb_ptr<npc_data> md, tick_t tick)
 {
-    dumb_ptr<mob_data> mmd = nullptr;
+    dumb_ptr<npc_data> mmd = nullptr;
     dumb_ptr<block_list> bl;
     MobMode mode;
     int old_dist;
@@ -1561,12 +1565,12 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     nullpo_retz(md);
 
     if ((bl = map_id2bl(md->master_id)) != nullptr)
-        mmd = bl->is_mob();
+        mmd = bl->is_npc();
 
     mode = get_mob_db(md->mob_class).mode;
 
     // It is not main monster/leader.
-    if (!mmd || mmd->bl_type != BL::MOB || mmd->bl_id != md->master_id)
+    if (!mmd || mmd->bl_type != BL::NPC || mmd->bl_id != md->master_id)
         return 0;
 
     // Since it is in the map on which the master is not, teleport is carried out and it pursues.
@@ -1683,7 +1687,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
  *------------------------------------------
  */
 static
-int mob_unlocktarget(dumb_ptr<mob_data> md, tick_t tick)
+int mob_unlocktarget(dumb_ptr<npc_data> md, tick_t tick)
 {
     nullpo_retz(md);
 
@@ -1699,7 +1703,7 @@ int mob_unlocktarget(dumb_ptr<mob_data> md, tick_t tick)
  *------------------------------------------
  */
 static
-int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
+int mob_randomwalk(dumb_ptr<npc_data> md, tick_t tick)
 {
     const int retrycount = 20;
 
@@ -1758,7 +1762,7 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
 static
 void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
 {
-    dumb_ptr<mob_data> md, tmd = nullptr;
+    dumb_ptr<npc_data> md, tmd = nullptr;
     dumb_ptr<map_session_data> tsd = nullptr;
     dumb_ptr<block_list> tbl = nullptr;
     dumb_ptr<flooritem_data> fitem;
@@ -1767,8 +1771,10 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     MobMode mode;
 
     nullpo_retv(bl);
-    md = bl->is_mob();
+    md = bl->is_npc();
 
+    if (md == nullptr)
+        return;
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME)
         return;
     md->last_thinktime = tick;
@@ -1806,7 +1812,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         md->bl_m,
                         md->bl_x - 13, md->bl_y - 13,
                         md->bl_x + 13, md->bl_y + 13,
-                        BL::MOB);
+                        BL::NPC);
             }
         }
     }
@@ -1890,8 +1896,8 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         {
             if (tbl->bl_type == BL::PC)
                 tsd = tbl->is_player();
-            else if (tbl->bl_type == BL::MOB)
-                tmd = tbl->is_mob();
+            else if (tbl->bl_type == BL::NPC)
+                tmd = tbl->is_npc();
             if (tsd || tmd)
             {
                 if (tbl->bl_m != md->bl_m || tbl->bl_prev == nullptr
@@ -2083,7 +2089,7 @@ void mob_ai_sub_foreachclient(dumb_ptr<map_session_data> sd, tick_t tick)
             sd->bl_m,
             sd->bl_x - AREA_SIZE * 2, sd->bl_y - AREA_SIZE * 2,
             sd->bl_x + AREA_SIZE * 2, sd->bl_y + AREA_SIZE * 2,
-            BL::MOB);
+            BL::NPC);
 }
 
 /*==========================================
@@ -2105,11 +2111,13 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
 {
     nullpo_retv(bl);
 
-    if (bl->bl_type != BL::MOB)
+    if (bl->bl_type != BL::NPC)
         return;
 
-    dumb_ptr<mob_data> md = bl->is_mob();
+    dumb_ptr<npc_data> md = bl->is_npc();
 
+    if (md == nullptr)
+        return;
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME * 10)
         return;
     md->last_thinktime = tick;
@@ -2259,7 +2267,7 @@ void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 ditem)
  * mob data is erased.
  *------------------------------------------
  */
-int mob_delete(dumb_ptr<mob_data> md)
+int mob_delete(dumb_ptr<npc_data> md)
 {
     nullpo_retr(1, md);
 
@@ -2273,7 +2281,7 @@ int mob_delete(dumb_ptr<mob_data> md)
     return 0;
 }
 
-int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
+int mob_catch_delete(dumb_ptr<npc_data> md, BeingRemoveWhy type)
 {
     nullpo_retr(1, md);
 
@@ -2289,11 +2297,11 @@ int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
 void mob_timer_delete(TimerData *, tick_t, BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
 
     nullpo_retv(bl);
 
-    md = bl->is_mob();
+    md = bl->is_npc();
     mob_catch_delete(md, BeingRemoveWhy::WARPED);
 }
 
@@ -2304,11 +2312,12 @@ void mob_timer_delete(TimerData *, tick_t, BlockId id)
 static
 void mob_deleteslave_sub(dumb_ptr<block_list> bl, BlockId id)
 {
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
 
     nullpo_retv(bl);
-    md = bl->is_mob();
-
+    md = bl->is_npc();
+    if (md == nullptr)
+        return;
     if (md->master_id && md->master_id == id)
         mob_damage(nullptr, md, md->hp, 1);
 }
@@ -2317,7 +2326,7 @@ void mob_deleteslave_sub(dumb_ptr<block_list> bl, BlockId id)
  *
  *------------------------------------------
  */
-int mob_deleteslave(dumb_ptr<mob_data> md)
+int mob_deleteslave(dumb_ptr<npc_data> md)
 {
     nullpo_retz(md);
 
@@ -2325,7 +2334,7 @@ int mob_deleteslave(dumb_ptr<mob_data> md)
             md->bl_m,
             0, 0,
             md->bl_m->xs, md->bl_m->ys,
-            BL::MOB);
+            BL::NPC);
     return 0;
 }
 
@@ -2341,7 +2350,7 @@ double damage_bonus_factor[DAMAGE_BONUS_COUNT + 1] =
  * It is the damage of sd to damage to md.
  *------------------------------------------
  */
-int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
+int mob_damage(dumb_ptr<block_list> src, dumb_ptr<npc_data> md, int damage,
                 int type)
 {
     dumb_ptr<map_session_data> sd = nullptr;
@@ -2406,7 +2415,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     {
         if (sd != nullptr)
         {
-            for (mob_data::DmgLogEntry& dle : md->dmglogv)
+            for (npc_data::DmgLogEntry& dle : md->dmglogv)
             {
                 if (dle.id == sd->bl_id)
                 {
@@ -2416,7 +2425,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
             //else
             {
-                mob_data::DmgLogEntry app;
+                npc_data::DmgLogEntry app;
                 app.id = sd->bl_id;
                 app.dmg = damage;
                 md->dmglogv.push_back(app);
@@ -2426,10 +2435,10 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             if (!md->attacked_id && md->state.special_mob_ai == 0)
                 md->attacked_id = sd->bl_id;
         }
-        if (src && src->bl_type == BL::MOB
-            && src->is_mob()->state.special_mob_ai)
+        if (src && src->bl_type == BL::NPC
+            && src->is_npc()->state.special_mob_ai)
         {
-            dumb_ptr<mob_data> md2 = src->is_mob();
+            dumb_ptr<npc_data> md2 = src->is_npc();
             dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
             if (master_bl && master_bl->bl_type == BL::PC)
             {
@@ -2440,7 +2449,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
 
             nullpo_retz(md2);
-            for (mob_data::DmgLogEntry& dle : md->dmglogv)
+            for (npc_data::DmgLogEntry& dle : md->dmglogv)
             {
                 if (dle.id == md2->master_id)
                 {
@@ -2450,7 +2459,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
             //else
             {
-                mob_data::DmgLogEntry app;
+                npc_data::DmgLogEntry app;
                 app.id = md2->master_id;
                 app.dmg = damage;
                 md->dmglogv.push_back(app);
@@ -2481,8 +2490,8 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     max_hp = battle_get_max_hp(md);
 
-    if (src && src->bl_type == BL::MOB)
-        mob_unlocktarget(src->is_mob(), tick);
+    if (src && src->bl_type == BL::NPC)
+        mob_unlocktarget(src->is_npc(), tick);
 
     // map外に消えた人は計算から除くので
     // overkill分は無いけどsumはmax_hpとは違う
@@ -2490,7 +2499,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     // snip a prelude loop, now merged
 
     std::sort(md->dmglogv.begin(), md->dmglogv.end(),
-            [](const mob_data::DmgLogEntry& l, const mob_data::DmgLogEntry& r) -> bool
+            [](const npc_data::DmgLogEntry& l, const npc_data::DmgLogEntry& r) -> bool
             {
                 // reversed
                 return l.dmg > r.dmg;
@@ -2506,7 +2515,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         std::vector<DmgLogParty> ptv;
 
         int mvp_dmg = 0, second_dmg = 0, third_dmg = 0;
-        for (mob_data::DmgLogEntry& dle : md->dmglogv)
+        for (npc_data::DmgLogEntry& dle : md->dmglogv)
         {
             dumb_ptr<map_session_data> tmpsdi = map_id2sd(dle.id);
             int tmpdmg = dle.dmg;
@@ -2716,7 +2725,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
  * mob回復
  *------------------------------------------
  */
-int mob_heal(dumb_ptr<mob_data> md, int heal)
+int mob_heal(dumb_ptr<npc_data> md, int heal)
 {
     int max_hp = battle_get_max_hp(md);
 
@@ -2736,7 +2745,7 @@ int mob_heal(dumb_ptr<mob_data> md, int heal)
 static
 void mob_warpslave_sub(dumb_ptr<block_list> bl, BlockId id, int x, int y)
 {
-    dumb_ptr<mob_data> md = bl->is_mob();
+    dumb_ptr<npc_data> md = bl->is_npc();
 
     if (md->master_id == id)
     {
@@ -2749,13 +2758,13 @@ void mob_warpslave_sub(dumb_ptr<block_list> bl, BlockId id, int x, int y)
  *------------------------------------------
  */
 static
-int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
+int mob_warpslave(dumb_ptr<npc_data> md, int x, int y)
 {
     map_foreachinarea(std::bind(mob_warpslave_sub, ph::_1, md->bl_id, md->bl_x, md->bl_y),
             md->bl_m,
             x - AREA_SIZE, y - AREA_SIZE,
             x + AREA_SIZE, y + AREA_SIZE,
-            BL::MOB);
+            BL::NPC);
     return 0;
 }
 
@@ -2763,7 +2772,7 @@ int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
  * mobワープ
  *------------------------------------------
  */
-int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y, BeingRemoveWhy type)
+int mob_warp(dumb_ptr<npc_data> md, Option<Borrowed<map_local>> m_, int x, int y, BeingRemoveWhy type)
 {
     int i = 0, xs = 0, ys = 0, bx = x, by = y;
 
@@ -2849,10 +2858,10 @@ int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m_, int x, int y
 static
 void mob_countslave_sub(dumb_ptr<block_list> bl, BlockId id, int *c)
 {
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
 
     nullpo_retv(bl);
-    md = bl->is_mob();
+    md = bl->is_npc();
 
     if (md->master_id == id)
         (*c)++;
@@ -2863,7 +2872,7 @@ void mob_countslave_sub(dumb_ptr<block_list> bl, BlockId id, int *c)
  *------------------------------------------
  */
 static
-int mob_countslave(dumb_ptr<mob_data> md)
+int mob_countslave(dumb_ptr<npc_data> md)
 {
     int c = 0;
 
@@ -2873,7 +2882,7 @@ int mob_countslave(dumb_ptr<mob_data> md)
             md->bl_m,
             0, 0,
             md->bl_m->xs - 1, md->bl_m->ys - 1,
-            BL::MOB);
+            BL::NPC);
     return c;
 }
 
@@ -2881,9 +2890,9 @@ int mob_countslave(dumb_ptr<mob_data> md)
  * 手下MOB召喚
  *------------------------------------------
  */
-int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
+int mob_summonslave(dumb_ptr<npc_data> md2, int *value_, int amount, int flag)
 {
-    dumb_ptr<mob_data> md;
+    dumb_ptr<npc_data> md;
     int bx, by, count = 0, a = amount;
 
     nullpo_retz(md2);
@@ -2946,7 +2955,8 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
             md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
 
             md->npc_event = NpcEvent();
-            md->bl_type = BL::MOB;
+            md->bl_type = BL::NPC;
+            md->npc_subtype = NpcSubtype::MOB;
             map_addiddb(md);
             mob_spawn(md->bl_id);
 
@@ -2977,9 +2987,9 @@ void mob_counttargeted_sub(dumb_ptr<block_list> bl,
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
-        dumb_ptr<mob_data> md = bl->is_mob();
+        dumb_ptr<npc_data> md = bl->is_npc();
         if (md && md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
             (*c)++;
@@ -2990,7 +3000,7 @@ void mob_counttargeted_sub(dumb_ptr<block_list> bl,
  * 自分をロックしているPCの数を数える
  *------------------------------------------
  */
-int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
+int mob_counttargeted(dumb_ptr<npc_data> md, dumb_ptr<block_list> src,
         ATK target_lv)
 {
     int c = 0;
@@ -3015,19 +3025,19 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
  */
 void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
 {
-    dumb_ptr<mob_data> md = nullptr;
+    dumb_ptr<npc_data> md = nullptr;
     dumb_ptr<block_list> bl;
     dumb_ptr<block_list> mbl;
     int range;
 
     if ((mbl = map_id2bl(id)) == nullptr) //詠唱したMobがもういないというのは良くある正常処理
         return;
-    if ((md = mbl->is_mob()) == nullptr)
+    if ((md = mbl->is_npc()) == nullptr)
     {
         PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n"_fmt, mbl->bl_id);
         return;
     }
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
+    if (md->bl_type != BL::NPC || md->bl_prev == nullptr)
         return;
 
     if (bool(md->opt1))
@@ -3081,7 +3091,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
  */
 void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
 {
-    dumb_ptr<mob_data> md = nullptr;
+    dumb_ptr<npc_data> md = nullptr;
     dumb_ptr<block_list> bl;
     int range;
 
@@ -3089,10 +3099,10 @@ void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
     if ((bl = map_id2bl(id)) == nullptr)
         return;
 
-    md = bl->is_mob();
+    md = bl->is_npc();
     nullpo_retv(md);
 
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
+    if (md->bl_type != BL::NPC || md->bl_prev == nullptr)
         return;
 
     if (bool(md->opt1))
@@ -3115,7 +3125,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
  * Skill use (an aria start, ID specification)
  *------------------------------------------
  */
-int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
+int mobskill_use_id(dumb_ptr<npc_data> md, dumb_ptr<block_list> target,
         mob_skill& skill_idx)
 {
     int range;
@@ -3190,7 +3200,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
  *------------------------------------------
  */
 static
-int mobskill_use_pos(dumb_ptr<mob_data> md,
+int mobskill_use_pos(dumb_ptr<npc_data> md,
         int skill_x, int skill_y, mob_skill& skill_idx)
 {
     int range;
@@ -3260,7 +3270,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
  * Skill use judging
  *------------------------------------------
  */
-int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
+int mobskill_use(dumb_ptr<npc_data> md, tick_t tick,
         MobSkillCondition event)
 {
     int max_hp;
@@ -3364,7 +3374,7 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
  * Skill use event processing
  *------------------------------------------
  */
-int mobskill_event(dumb_ptr<mob_data> md, BF flag)
+int mobskill_event(dumb_ptr<npc_data> md, BF flag)
 {
     nullpo_retz(md);
 

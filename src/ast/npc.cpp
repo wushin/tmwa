@@ -203,7 +203,7 @@ namespace npc
         }
         mob.key_span = bits[1].data[0].span;
         TRY_EXTRACT(bits[2].data[0], mob.name);
-        TRY_EXTRACT(bits[3].data[0], mob.mob_class);
+        TRY_EXTRACT(bits[3].data[0], mob.npc_class);
         TRY_EXTRACT(bits[3].data[1], mob.num);
         if (bits[3].data.size() >= 4)
         {

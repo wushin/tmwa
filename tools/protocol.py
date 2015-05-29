@@ -2285,7 +2285,7 @@ def build_context():
             at(8, opt1, 'opt1'),
             at(10, opt2, 'opt2'),
             at(12, option, 'option'),
-            at(14, species, 'mob class'),
+            at(14, species, 'npc class'),
             at(16, u8, 'hair style'),
             at(17, u8, 'look'),
             at(18, u16, 'unused weapon'),

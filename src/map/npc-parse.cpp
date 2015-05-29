@@ -100,6 +100,7 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         "WARP"_s,
         "SHOP"_s,
         "SCRIPT"_s,
+        "MOB"_s,
         "MESSAGE"_s,
     }};
     if (!nd->name)
@@ -156,7 +157,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     nd->name = warp.name.data;
 
     nd->npc_class = WARP_CLASS;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_NPC_WALK_SPEED;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -237,7 +238,7 @@ bool npc_load_shop(ast::npc::Shop& shop)
     nd->sit = DamageType::STAND;
     nd->name = shop.name.data;
     nd->npc_class = npc_class;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_NPC_WALK_SPEED;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -261,7 +262,8 @@ bool npc_load_monster(ast::npc::Monster& monster)
     int x = monster.x.data, y = monster.y.data;
     int xs = monster.xs.data, ys = monster.ys.data;
 
-    Species mob_class = monster.mob_class.data;
+    Species npc_class = monster.npc_class.data;
+    Species mob_class = npc_class;
     int num = monster.num.data;
     interval_t delay1 = monster.delay1.data;
     interval_t delay2 = monster.delay2.data;
@@ -278,7 +280,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
 
     for (int i = 0; i < num; i++)
     {
-        dumb_ptr<mob_data> md;
+        dumb_ptr<npc_data> md;
         md.new_();
 
         md->bl_prev = nullptr;
@@ -286,7 +288,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        MobName expected = get_mob_db(mob_class).jname;
+        NpcName expected = get_mob_db(mob_class).jname;
         if (monster.name.data != expected)
         {
             monster.name.span.warning(STRPRINTF("Visible label/jname should match: %s"_fmt, expected));
@@ -299,6 +301,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
             md->name = monster.name.data;
 
         md->n = i;
+        md->npc_class = npc_class;
         md->mob_class = mob_class;
         md->bl_id = npc_get_new_npc_id();
         md->spawn.m = m;
@@ -318,7 +321,8 @@ bool npc_load_monster(ast::npc::Monster& monster)
 
         md->npc_event = eventname;
 
-        md->bl_type = BL::MOB;
+        md->bl_type = BL::NPC;
+        md->npc_subtype = NpcSubtype::MOB;
         map_addiddb(md);
         mob_spawn(md->bl_id);
 
@@ -450,7 +454,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->flag = 0;
     nd->sit = DamageType::STAND;
     nd->npc_class = INVISIBLE_CLASS;
-    nd->speed = 200_ms;
+    nd->speed = DEFAULT_NPC_WALK_SPEED;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
@@ -522,6 +526,8 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     MapName mapname = script_map.m.data;
     int x = script_map.x.data, y = script_map.y.data;
     DIR dir = script_map.d.data;
+    interval_t delay1 = 100000_ms;
+    interval_t delay2 = 100000_ms;
 
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname),
             {
@@ -572,12 +578,25 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->flag = 0;
     nd->sit = DamageType::STAND;
     nd->npc_class = npc_class;
-    nd->speed = 200_ms;
+    nd->mob_class = wrap<Species>(1002);
+    nd->speed = DEFAULT_NPC_WALK_SPEED;
     nd->scr.script = std::move(script);
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
+
+    nd->spawn.m = m;
+    nd->spawn.x0 = x;
+    nd->spawn.y0 = y;
+    nd->spawn.xs = xs;
+    nd->spawn.ys = ys;
+    nd->spawn.delay1 = delay1;
+    nd->spawn.delay2 = delay2;
+    really_memzero_this(&nd->state);
+    nd->target_id = BlockId();
+    nd->attacked_id = BlockId();
+    nd->lootitemv.clear();
 
     npc_script++;
     nd->bl_type = BL::NPC;
@@ -586,7 +605,8 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->n = map_addnpc(m, nd);
     map_addblock(nd);
 
-    clif_spawnnpc(nd);
+    //clif_spawnnpc(nd);
+    mob_spawn(nd->bl_id);
 
     register_npc_name(nd);
 
@@ -689,7 +709,7 @@ dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
         retval->message = message;
 
     retval->npc_class = npc_class;
-    retval->speed = 200_ms;
+    retval->speed = DEFAULT_NPC_WALK_SPEED;
 
     clif_spawnnpc(retval);
     map_addblock(retval);

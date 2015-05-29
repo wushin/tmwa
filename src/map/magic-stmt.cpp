@@ -429,7 +429,7 @@ int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 static
 void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int destx, int desty)
 {
-    if (target->bl_type == BL::PC || target->bl_type == BL::MOB)
+    if (target->bl_type == BL::PC || target->bl_type == BL::NPC)
     {
 
         switch (target->bl_type)
@@ -455,11 +455,11 @@ void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int des
                         character->bl_x, character->bl_y);
                 break;
             }
-            case BL::MOB:
+            case BL::NPC:
                 target->bl_x = destx;
                 target->bl_y = desty;
                 target->bl_m = destm;
-                clif_fixmobpos(target->is_mob());
+                clif_fixmobpos(target->is_npc());
                 break;
         }
     }
@@ -496,9 +496,9 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
-    if (subject->bl_type == BL::MOB)
+    if (subject->bl_type == BL::NPC)
     {
-        dumb_ptr<mob_data> mob = subject->is_mob();
+        dumb_ptr<npc_data> mob = subject->is_npc();
 
         if (bool(mob->mode & MobMode::SUMMONED))
             mob_catch_delete(mob, BeingRemoveWhy::WARPED);
@@ -638,10 +638,10 @@ int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
     dumb_ptr<block_list> victim = ARGENTITY(2);
     int mode = ARGINT(1);
     dumb_ptr<block_list> target = ARGENTITY(0);
-    dumb_ptr<mob_data> other;
+    dumb_ptr<npc_data> other;
 
-    if (target->bl_type == BL::MOB)
-        other = target->is_mob();
+    if (target->bl_type == BL::NPC)
+        other = target->is_npc();
     else
         return 0;
 
@@ -689,12 +689,12 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
         magic_random_location(&loc, area);
 
         BlockId mob_id;
-        dumb_ptr<mob_data> mob;
+        dumb_ptr<npc_data> mob;
 
         mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
                 monster_id, 1, NpcEvent());
 
-        mob = map_id_is_mob(mob_id);
+        mob = map_id_is_npc(mob_id);
 
         if (mob)
         {
@@ -797,9 +797,9 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     if (caster->bl_type == BL::PC)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
-        if (target->bl_type == BL::MOB)
+        if (target->bl_type == BL::NPC)
         {
-            dumb_ptr<mob_data> mob = target->is_mob();
+            dumb_ptr<npc_data> mob = target->is_npc();
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
                     mob->bl_id, mob->mob_class, damage_caused,
@@ -1100,8 +1100,8 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             }
             return;
 
-        case BL::MOB:
-            if (filter == FOREACH_FILTER::MOB
+        case BL::NPC:
+            if (filter == FOREACH_FILTER::NPC
                 || filter == FOREACH_FILTER::ENTITY
                 || filter == FOREACH_FILTER::TARGET)
                 break;
@@ -1119,12 +1119,6 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
                 else
                     break;      /* Add the spell */
             }
-            else
-                return;
-
-        case BL::NPC:
-            if (filter == FOREACH_FILTER::NPC)
-                break;
             else
                 return;
 

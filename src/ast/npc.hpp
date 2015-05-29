@@ -79,7 +79,8 @@ namespace npc
         Spanned<unsigned> x, y;
         Spanned<unsigned> xs, ys;
         io::LineSpan key_span;
-        Spanned<MobName> name;
+        Spanned<NpcName> name;
+        Spanned<Species> npc_class;
         Spanned<Species> mob_class;
         Spanned<unsigned> num;
         Spanned<interval_t> delay1, delay2;
@@ -110,6 +111,8 @@ namespace npc
         Spanned<DIR> d;
         Spanned<NpcName> name;
         Spanned<Species> npc_class;
+        Spanned<Species> mob_class;
+        Spanned<interval_t> delay1, delay2;
         Spanned<unsigned> xs, ys;
     };
     using ScriptBase = Variant<ScriptFunction, ScriptNone, ScriptMap>;

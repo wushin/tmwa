@@ -321,38 +321,18 @@ struct npc_data : block_list
     NpcSubtype npc_subtype;
     short n;
     Species npc_class;
+    Species mob_class;
     DIR dir;
     SEX sex;
     DamageType sit;
     interval_t speed;
     NpcName name;
-    Opt1 opt1;
-    Opt2 opt2;
-    Opt3 opt3;
-    Opt0 option;
     short flag;
 
     std::list<RString> eventqueuel;
     Array<Timer, MAX_EVENTTIMER> eventtimer;
     short arenaflag;
 
-private:
-    dumb_ptr<npc_data_script> as_script();
-    dumb_ptr<npc_data_mob> as_mob();
-    dumb_ptr<npc_data_shop> as_shop();
-    dumb_ptr<npc_data_warp> as_warp();
-    dumb_ptr<npc_data_message> as_message();
-public:
-    dumb_ptr<npc_data_script> is_script();
-    dumb_ptr<npc_data_mob> is_mob();
-    dumb_ptr<npc_data_shop> is_shop();
-    dumb_ptr<npc_data_warp> is_warp();
-    dumb_ptr<npc_data_message> is_message();
-};
-
-class npc_data_mob : public npc_data
-{
-public:
     struct
     {
         Borrowed<map_local> m = borrow(undefined_gat);
@@ -372,8 +352,10 @@ public:
         unsigned walk_easy:1;
         unsigned special_mob_ai:3;
     } state;
+    short to_x, to_y;
+    MobMode mode;
     Timer timer;
-       int hp;
+    int hp;
     BlockId target_id, attacked_id;
     ATK target_lv;
     struct walkpath_data walkpath;
@@ -410,6 +392,21 @@ public:
     // [Fate] mob-specific stats
     earray<unsigned short, mob_stat, mob_stat::LAST> stats;
     short size;
+    Opt1 opt1;
+    Opt2 opt2;
+    Opt3 opt3;
+    Opt0 option;
+
+private:
+    dumb_ptr<npc_data_script> as_script();
+    dumb_ptr<npc_data_shop> as_shop();
+    dumb_ptr<npc_data_warp> as_warp();
+    dumb_ptr<npc_data_message> as_message();
+public:
+    dumb_ptr<npc_data_script> is_script();
+    dumb_ptr<npc_data_shop> is_shop();
+    dumb_ptr<npc_data_warp> is_warp();
+    dumb_ptr<npc_data_message> is_message();
 };
 
 class npc_data_script : public npc_data
@@ -472,7 +469,7 @@ constexpr int MOB_XP_BONUS_SHIFT = 10;
 
 struct BlockLists
 {
-    dumb_ptr<block_list> normal, mobs_only;
+    dumb_ptr<block_list> normal;
 };
 
 struct map_abstract
@@ -612,12 +609,6 @@ dumb_ptr<npc_data> map_id_is_npc(BlockId id)
     return bl ? bl->is_npc() : nullptr;
 }
 inline
-dumb_ptr<npc_data> map_id_is_mob(BlockId id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->is_mob() : nullptr;
-}
-inline
 dumb_ptr<flooritem_data> map_id_is_item(BlockId id)
 {
     dumb_ptr<block_list> bl = map_id2bl(id);
@@ -672,13 +663,11 @@ inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::IT
 // struct invocation is defined in another header
 
 inline dumb_ptr<npc_data_script> npc_data::as_script() { return dumb_ptr<npc_data_script>(static_cast<npc_data_script *>(this)) ; }
-inline dumb_ptr<npc_data_mob> npc_data::as_mob() { return dumb_ptr<npc_data_mob>(static_cast<npc_data_mob *>(this)) ; }
 inline dumb_ptr<npc_data_shop> npc_data::as_shop() { return dumb_ptr<npc_data_shop>(static_cast<npc_data_shop *>(this)) ; }
 inline dumb_ptr<npc_data_warp> npc_data::as_warp() { return dumb_ptr<npc_data_warp>(static_cast<npc_data_warp *>(this)) ; }
 inline dumb_ptr<npc_data_message> npc_data::as_message() { return dumb_ptr<npc_data_message>(static_cast<npc_data_message *>(this)) ; }
 
 inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == NpcSubtype::SCRIPT ? as_script() : nullptr ; }
-inline dumb_ptr<npc_data_mob> npc_data::is_mob() { return npc_subtype == NpcSubtype::MOB ? as_mob() : nullptr ; }
 inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }

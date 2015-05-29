@@ -168,24 +168,13 @@ int map_addblock(dumb_ptr<block_list> bl)
         x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return 1;
 
-    if (bl->bl_type == BL::MOB)
-    {
-        bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).mobs_only;
-        bl->bl_prev = dumb_ptr<block_list>(&bl_head);
-        if (bl->bl_next)
-            bl->bl_next->bl_prev = bl;
-        m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).mobs_only = bl;
-    }
-    else
-    {
-        bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal;
-        bl->bl_prev = dumb_ptr<block_list>(&bl_head);
-        if (bl->bl_next)
-            bl->bl_next->bl_prev = bl;
-        m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal = bl;
-        if (bl->bl_type == BL::PC)
-            m->users++;
-    }
+    bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal;
+    bl->bl_prev = dumb_ptr<block_list>(&bl_head);
+    if (bl->bl_next)
+        bl->bl_next->bl_prev = bl;
+    m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal = bl;
+    if (bl->bl_type == BL::PC)
+        m->users++;
 
     return 0;
 }
@@ -218,15 +207,7 @@ int map_delblock(dumb_ptr<block_list> bl)
         bl->bl_next->bl_prev = bl->bl_prev;
     if (bl->bl_prev == dumb_ptr<block_list>(&bl_head))
     {
-        // リストの頭なので、map[]のblock_listを更新する
-        if (bl->bl_type == BL::MOB)
-        {
-            bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).mobs_only = bl->bl_next;
-        }
-        else
-        {
-            bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).normal = bl->bl_next;
-        }
+        bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).normal = bl->bl_next;
     }
     else
     {
@@ -257,12 +238,6 @@ int map_count_oncell(Borrowed<map_local> m, int x, int y)
     for (; bl; bl = bl->bl_next)
     {
         if (bl->bl_x == x && bl->bl_y == y && bl->bl_type == BL::PC)
-            count++;
-    }
-    bl = m->blocks.ref(bx, by).mobs_only;
-    for (; bl; bl = bl->bl_next)
-    {
-        if (bl->bl_x == x && bl->bl_y == y)
             count++;
     }
     if (!count)
@@ -296,36 +271,21 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
         x1 = m->xs - 1;
     if (y1 >= m->ys)
         y1 = m->ys - 1;
-    if (type == BL::NUL || type != BL::MOB)
-        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+    for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+    {
+        for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
         {
-            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
+            dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+            for (; bl; bl = bl->bl_next)
             {
-                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
-                for (; bl; bl = bl->bl_next)
-                {
-                    if (type != BL::NUL && bl->bl_type != type)
-                        continue;
-                    if (bl->bl_x >= x0 && bl->bl_x <= x1
-                        && bl->bl_y >= y0 && bl->bl_y <= y1)
-                        bl_list.push_back(bl);
-                }
+                if (type != BL::NUL && bl->bl_type != type)
+                    continue;
+                if (bl->bl_x >= x0 && bl->bl_x <= x1
+                    && bl->bl_y >= y0 && bl->bl_y <= y1)
+                    bl_list.push_back(bl);
             }
         }
-    if (type == BL::NUL || type == BL::MOB)
-        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
-        {
-            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
-            {
-                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).mobs_only;
-                for (; bl; bl = bl->bl_next)
-                {
-                    if (bl->bl_x >= x0 && bl->bl_x <= x1
-                        && bl->bl_y >= y0 && bl->bl_y <= y1)
-                        bl_list.push_back(bl);
-                }
-            }
-        }
+    }
 
     MapBlockLock lock;
 
@@ -390,15 +350,6 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
                         bl_list.push_back(bl);
                 }
-                bl = m->blocks.ref(bx, by).mobs_only;
-                for (; bl; bl = bl->bl_next)
-                {
-                    if (type != BL::NUL && bl->bl_type != type)
-                        continue;
-                    if (bl->bl_x >= x0 && bl->bl_x <= x1
-                        && bl->bl_y >= y0 && bl->bl_y <= y1)
-                        bl_list.push_back(bl);
-                }
             }
         }
     }
@@ -432,20 +383,6 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                         || (dy < 0 && bl->bl_y > y1 + dy))
                         bl_list.push_back(bl);
                 }
-                bl = m->blocks.ref(bx, by).mobs_only;
-                for (; bl; bl = bl->bl_next)
-                {
-                    if (type != BL::NUL && bl->bl_type != type)
-                        continue;
-                    if (!(bl->bl_x >= x0 && bl->bl_x <= x1
-                             && bl->bl_y >= y0 && bl->bl_y <= y1))
-                        continue;
-                    if ((dx > 0 && bl->bl_x < x0 + dx)
-                        || (dx < 0 && bl->bl_x > x1 + dx)
-                        || (dy > 0 && bl->bl_y < y0 + dy)
-                        || (dy < 0 && bl->bl_y > y1 + dy))
-                        bl_list.push_back(bl);
-                }
             }
         }
 
@@ -471,33 +408,20 @@ void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
     int by = y / BLOCK_SIZE;
     int bx = x / BLOCK_SIZE;
 
-    if (type == BL::NUL || type != BL::MOB)
+    dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+    for (; bl; bl = bl->bl_next)
     {
-        dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
-        for (; bl; bl = bl->bl_next)
-        {
-            if (type != BL::NUL && bl->bl_type != type)
-                continue;
-            if (bl->bl_x == x && bl->bl_y == y)
-                bl_list.push_back(bl);
-        }
-    }
-
-    if (type == BL::NUL || type == BL::MOB)
-    {
-        dumb_ptr<block_list> bl = m->blocks.ref(bx, by).mobs_only;
-        for (; bl; bl = bl->bl_next)
-        {
-            if (bl->bl_x == x && bl->bl_y == y)
-                bl_list.push_back(bl);
-        }
+        if (type != BL::NUL && bl->bl_type != type)
+            continue;
+        if (bl->bl_x == x && bl->bl_y == y)
+            bl_list.push_back(bl);
     }
 
     MapBlockLock lock;
 
-    for (dumb_ptr<block_list> bl : bl_list)
-        if (bl->bl_prev)
-            func(bl);
+    for (dumb_ptr<block_list> bl_ : bl_list)
+        if (bl_->bl_prev)
+            func(bl_);
 }
 
 /*==========================================
@@ -1446,9 +1370,6 @@ void cleanup_sub(dumb_ptr<block_list> bl)
             break;
         case BL::NPC:
             npc_delete(bl->is_npc());
-            break;
-        case BL::MOB:
-            mob_delete(bl->is_mob());
             break;
         case BL::ITEM:
             map_clearflooritem(bl->bl_id);
