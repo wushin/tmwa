@@ -79,8 +79,8 @@ namespace npc
         Spanned<unsigned> x, y;
         Spanned<unsigned> xs, ys;
         io::LineSpan key_span;
-        Spanned<MobName> name;
-        Spanned<Species> mob_class;
+        Spanned<NpcName> name;
+        Spanned<Species> npc_class;
         Spanned<unsigned> num;
         Spanned<interval_t> delay1, delay2;
         Spanned<NpcEvent> event;

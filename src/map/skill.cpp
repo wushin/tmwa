@@ -195,9 +195,9 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     {
         sd = src->is_player();
     }
-    else if (src->bl_type == BL::MOB)
+    else if (src->bl_type == BL::NPC)
     {
-        md = src->is_mob();
+        md = src->is_npc()->is_mob();
     }
 
     sc_def_phys_shield_spell = 0;
@@ -214,7 +214,7 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     //自分の耐性
     luk = battle_get_luk(src);
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {
         if (sc_def_mdef > 50)
             sc_def_mdef = 50;
@@ -319,7 +319,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         {
             if (damage > 0)
                 skill_additional_effect(src, bl, skillid, skilllv);
-            if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
+            if (bl->bl_type == BL::NPC && src != bl)    /* スキル使用条件のMOBスキル */
             {
                 dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
                 if (battle_config.mob_changetarget_byskill == 1)
@@ -372,7 +372,7 @@ void skill_area_sub(dumb_ptr<block_list> bl,
 {
     nullpo_retv(bl);
 
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::NPC)
         return;
 
     if (battle_check_target(src, bl, flag) > 0)
@@ -416,7 +416,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             if (flag.lo & 1)
             {
                 /* 個別にダメージを与える */
-                if (src->bl_type == BL::MOB)
+                if (src->bl_type == BL::NPC)
                 {
                     dumb_ptr<npc_data_mob> mb = src->is_npc()->is_mob();
                     mb->hp = skill_area_temp_hp;
@@ -495,8 +495,8 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 
     if (src->bl_type == BL::PC)
         sd = src->is_player();
-    else if (src->bl_type == BL::MOB)
-        md = src->is_mob();
+    else if (src->bl_type == BL::NPC)
+        md = src->is_npc()->is_mob();
 
     sc_def_vit = 100 - (3 + battle_get_vit(bl) + battle_get_luk(bl) / 3);
     sc_def_vit = 100 - (3 + battle_get_vit(bl) + battle_get_luk(bl) / 3);
@@ -507,9 +507,9 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     {
         dstsd = bl->is_player();
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
-        dstmd = bl->is_mob();
+        dstmd = bl->is_npc()->is_mob();
         if (sc_def_vit > 50)
             sc_def_vit = 50;
         if (sc_def_mdef > 50)
@@ -567,9 +567,9 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 
     nullpo_retr(interval_t::zero(), bl);
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {                           // Crash fix [Valaris]
-        md = bl->is_mob();
+        md = bl->is_npc()->is_mob();
         skill = md->skillid;
         lv = md->skilllv;
     }
@@ -648,7 +648,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
 
         return 0;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
         if (md->skilltimer)
@@ -675,7 +675,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::NPC)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_active: neither MOB nor PC !\n"_fmt);
@@ -699,7 +699,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     Opt3 *opt3;
 
     nullpo_retv(bl);
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::NPC)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_end: neither MOB nor PC !\n"_fmt);
@@ -851,7 +851,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
                             hp = 3 + hp * 3 / 200;
                             pc_heal(bl->is_player(), -hp, 0);
                         }
-                        else if (bl->bl_type == BL::MOB)
+                        else if (bl->bl_type == BL::NPC)
                         {
                             dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
                             hp = 3 + hp / 200;
@@ -942,7 +942,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     {
         sd = bl->is_player();
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
     }
     else

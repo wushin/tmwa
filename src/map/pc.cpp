@@ -424,9 +424,11 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
-    else if (bl->bl_type == BL::NPC && bl->npc_subtype == NpcSubtype::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
+        if (md == nullptr)
+            return;
         if (md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
 
@@ -2682,11 +2684,11 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
     if (bl == nullptr)
         return 1;
 
-    if (bl->bl_type == BL::NPC)
+/*    if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
         npc_click(sd, target_id);
         return 0;
-    }
+    }*/
 
     if (!battle_check_target(sd, bl, BCT_ENEMY))
         return 1;

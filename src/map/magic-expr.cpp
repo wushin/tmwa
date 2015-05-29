@@ -192,8 +192,6 @@ AString show_entity(dumb_ptr<block_list> entity)
             return entity->is_player()->status_key.name.to__actual();
         case BL::NPC:
             return entity->is_npc()->name;
-        case BL::MOB:
-            return entity->is_mob()->name;
         case BL::ITEM:
             assert (0 && "There is no way this code did what it was supposed to do!"_s);
             /* Sorry about this one... */
@@ -815,9 +813,9 @@ int fun_name_of(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_mob_id(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) != BL::MOB)
+    if (ENTITY_TYPE(0) != BL::NPC)
         return 1;
-    *result = ValInt{unwrap<Species>(ARGMOB(0)->mob_class)};
+    *result = ValInt{unwrap<Species>(ARGNPC(0)->npc_class)};
     return 0;
 }
 
@@ -1226,7 +1224,7 @@ int fun_rbox(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_running_status_update(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::MOB)
+    if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::NPC)
         return 1;
 
     StatusChange sc = static_cast<StatusChange>(ARGINT(1));

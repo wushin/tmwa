@@ -262,7 +262,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
     int x = monster.x.data, y = monster.y.data;
     int xs = monster.xs.data, ys = monster.ys.data;
 
-    Species mob_class = monster.mob_class.data;
+    Species npc_class = monster.npc_class.data;
     int num = monster.num.data;
     interval_t delay1 = monster.delay1.data;
     interval_t delay2 = monster.delay2.data;
@@ -287,20 +287,20 @@ bool npc_load_monster(ast::npc::Monster& monster)
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        MobName expected = get_mob_db(mob_class).jname;
+        NpcName expected = get_mob_db(npc_class).jname;
         if (monster.name.data != expected)
         {
             monster.name.span.warning(STRPRINTF("Visible label/jname should match: %s"_fmt, expected));
         }
         if (monster.name.data == ENGLISH_NAME)
-            md->name = get_mob_db(mob_class).name;
+            md->name = get_mob_db(npc_class).name;
         else if (monster.name.data == JAPANESE_NAME)
-            md->name = get_mob_db(mob_class).jname;
+            md->name = get_mob_db(npc_class).jname;
         else
             md->name = monster.name.data;
 
         md->n = i;
-        md->mob_class = mob_class;
+        md->npc_class = npc_class;
         md->bl_id = npc_get_new_npc_id();
         md->spawn.m = m;
         md->spawn.x0 = x;

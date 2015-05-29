@@ -372,8 +372,10 @@ public:
         unsigned walk_easy:1;
         unsigned special_mob_ai:3;
     } state;
+    short to_x, to_y;
+    MobMode mode;
     Timer timer;
-       int hp;
+    int hp;
     BlockId target_id, attacked_id;
     ATK target_lv;
     struct walkpath_data walkpath;
@@ -472,7 +474,7 @@ constexpr int MOB_XP_BONUS_SHIFT = 10;
 
 struct BlockLists
 {
-    dumb_ptr<block_list> normal, mobs_only;
+    dumb_ptr<block_list> normal;
 };
 
 struct map_abstract

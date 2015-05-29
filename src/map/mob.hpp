@@ -39,8 +39,8 @@ namespace tmwa
 {
 namespace map
 {
-#define ENGLISH_NAME stringish<MobName>("--en--"_s)
-#define JAPANESE_NAME stringish<MobName>("--ja--"_s)
+#define ENGLISH_NAME stringish<NpcName>("--en--"_s)
+#define JAPANESE_NAME stringish<NpcName>("--ja--"_s)
 #define MOB_THIS_MAP stringish<MapName>("this"_s)
 
 struct mob_skill
@@ -60,7 +60,7 @@ struct mob_skill
 
 struct mob_db_
 {
-    MobName name, jname;
+    NpcName name, jname;
     int lv;
     int max_hp, max_sp;
     int base_exp, job_exp;
@@ -88,15 +88,15 @@ struct mob_db_
 };
 struct mob_db_& get_mob_db(Species);
 
-Species mobdb_searchname(MobName str);
+Species mobdb_searchname(NpcName str);
 Species mobdb_checkid(Species id);
 BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         MapName mapname, int x, int y,
-        MobName mobname, Species class_, int amount,
+        NpcName mobname, Species class_, int amount,
         NpcEvent event);
 BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         MapName mapname, int x0, int y0, int x1, int y1,
-        MobName mobname, Species class_, int amount,
+        NpcName mobname, Species class_, int amount,
         NpcEvent event);
 
 int mob_target(dumb_ptr<npc_data_mob> md, dumb_ptr<block_list> bl, int dist);

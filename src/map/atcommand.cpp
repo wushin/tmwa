@@ -1786,7 +1786,7 @@ static
 ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    MobName monster;
+    NpcName monster;
     Species mob_id;
     int number = 0;
     int x = 0, y = 0;
@@ -1835,7 +1835,7 @@ ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
                 my = sd->bl_y + random_::in(-range / 2, range / 2);
             else
                 my = y;
-            k = mob_once_spawn(sd, MOB_THIS_MAP, mx, my, MobName(), mob_id, 1, NpcEvent());
+            k = mob_once_spawn(sd, MOB_THIS_MAP, mx, my, NpcName(), mob_id, 1, NpcEvent());
         }
         count += k ? 1 : 0;
     }
@@ -4406,7 +4406,7 @@ static
 ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    MobName name;
+    NpcName name;
     Species mob_id;
     int x = 0;
     int y = 0;
@@ -4429,7 +4429,7 @@ ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
     {
         md->master_id = sd->bl_id;
         md->state.special_mob_ai = 1;
-        md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE;
+        md->mode = get_mob_db(md->npc_class).mode | MobMode::AGGRESSIVE;
         md->deletetimer = Timer(tick + 1_min,
                 std::bind(mob_timer_delete, ph::_1, ph::_2,
                     id));

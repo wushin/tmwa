@@ -70,7 +70,7 @@ int battle_counttargeted(dumb_ptr<block_list> bl, dumb_ptr<block_list> src,
     if (bl->bl_type == BL::PC)
         return pc_counttargeted(bl->is_player(), src,
                                  target_lv);
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
         return mob_counttargeted(bl->is_npc()->is_mob(), src, target_lv);
     return 0;
 }
@@ -83,8 +83,8 @@ int battle_counttargeted(dumb_ptr<block_list> bl, dumb_ptr<block_list> src,
 Species battle_get_class(dumb_ptr<block_list> bl)
 {
     nullpo_retr(Species(), bl);
-    if (bl->bl_type == BL::MOB)
-        return bl->is_npc()->is_mob()->mob_class;
+    if (bl->bl_type == BL::NPC)
+        return bl->is_npc()->is_mob()->npc_class;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->status.species;
     else
@@ -99,7 +99,7 @@ Species battle_get_class(dumb_ptr<block_list> bl)
 DIR battle_get_dir(dumb_ptr<block_list> bl)
 {
     nullpo_retr(DIR::S, bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return bl->is_npc()->is_mob()->dir;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->dir;
@@ -115,7 +115,7 @@ DIR battle_get_dir(dumb_ptr<block_list> bl)
 int battle_get_lv(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return bl->is_npc()->is_mob()->stats[mob_stat::LV];
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->status.base_level;
@@ -131,8 +131,8 @@ int battle_get_lv(dumb_ptr<block_list> bl)
 int battle_get_range(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
-        return get_mob_db(bl->is_npc()->is_mob()->mob_class).range;
+    if (bl->bl_type == BL::NPC)
+        return get_mob_db(bl->is_npc()->is_mob()->npc_class).range;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->attackrange;
     else
@@ -147,7 +147,7 @@ int battle_get_range(dumb_ptr<block_list> bl)
 int battle_get_hp(dumb_ptr<block_list> bl)
 {
     nullpo_retr(1, bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return bl->is_npc()->is_mob()->hp;
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->status.hp;
@@ -168,7 +168,7 @@ int battle_get_max_hp(dumb_ptr<block_list> bl)
     else
     {
         int max_hp = 1;
-        if (bl->bl_type == BL::MOB)
+        if (bl->bl_type == BL::NPC)
         {
             max_hp = bl->is_npc()->is_mob()->stats[mob_stat::MAX_HP];
             {
@@ -194,7 +194,7 @@ int battle_get_str(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         str = bl->is_npc()->is_mob()->stats[mob_stat::STR];
     else if (bl->bl_type == BL::PC)
         return bl->is_player()->paramc[ATTR::STR];
@@ -217,7 +217,7 @@ int battle_get_agi(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         agi = bl->is_npc()->is_mob()->stats[mob_stat::AGI];
     else if (bl->bl_type == BL::PC)
         agi = bl->is_player()->paramc[ATTR::AGI];
@@ -239,7 +239,7 @@ int battle_get_vit(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         vit = bl->is_npc()->is_mob()->stats[mob_stat::VIT];
     else if (bl->bl_type == BL::PC)
         vit = bl->is_player()->paramc[ATTR::VIT];
@@ -261,7 +261,7 @@ int battle_get_int(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         int_ = bl->is_npc()->is_mob()->stats[mob_stat::INT];
     else if (bl->bl_type == BL::PC)
         int_ = bl->is_player()->paramc[ATTR::INT];
@@ -283,7 +283,7 @@ int battle_get_dex(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         dex = bl->is_npc()->is_mob()->stats[mob_stat::DEX];
     else if (bl->bl_type == BL::PC)
         dex = bl->is_player()->paramc[ATTR::DEX];
@@ -305,7 +305,7 @@ int battle_get_luk(dumb_ptr<block_list> bl)
 
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         luk = bl->is_npc()->is_mob()->stats[mob_stat::LUK];
     else if (bl->bl_type == BL::PC)
         luk = bl->is_player()->paramc[ATTR::LUK];
@@ -473,7 +473,7 @@ int battle_get_atk(dumb_ptr<block_list> bl)
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         atk = bl->is_player()->watk;
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
         atk = bl->is_npc()->is_mob()->stats[mob_stat::ATK1];
 
     if (atk < 0)
@@ -495,7 +495,7 @@ int battle_get_atk2(dumb_ptr<block_list> bl)
     else
     {
         int atk2 = 0;
-        if (bl->bl_type == BL::MOB)
+        if (bl->bl_type == BL::NPC)
             atk2 = bl->is_npc()->is_mob()->stats[mob_stat::ATK2];
 
         if (atk2 < 0)
@@ -515,7 +515,7 @@ int battle_get_matk1(dumb_ptr<block_list> bl)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     nullpo_retz(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {
         int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 5) * (int_ / 5);
@@ -537,7 +537,7 @@ static
 int battle_get_matk2(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {
         int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 7) * (int_ / 7);
@@ -566,7 +566,7 @@ int battle_get_def(dumb_ptr<block_list> bl)
     {
         def = bl->is_player()->def;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
         def = bl->is_npc()->is_mob()->stats[mob_stat::DEF];
     }
@@ -600,7 +600,7 @@ int battle_get_mdef(dumb_ptr<block_list> bl)
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         mdef = bl->is_player()->mdef;
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
         mdef = bl->is_npc()->is_mob()->stats[mob_stat::MDEF];
 
     if (mdef < 1000000)
@@ -635,7 +635,7 @@ int battle_get_def2(dumb_ptr<block_list> bl)
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::PC)
         def2 = bl->is_player()->def2;
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
         def2 = bl->is_npc()->is_mob()->stats[mob_stat::VIT];
 
     if (sc_data)
@@ -659,7 +659,7 @@ int battle_get_mdef2(dumb_ptr<block_list> bl)
     int mdef2 = 0;
 
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
         mdef2 = md->stats[mob_stat::INT] + (md->stats[mob_stat::VIT] >> 1);
@@ -689,7 +689,7 @@ interval_t battle_get_speed(dumb_ptr<block_list> bl)
     else
     {
         interval_t speed = 1_s;
-        if (bl->bl_type == BL::MOB)
+        if (bl->bl_type == BL::NPC)
             speed = static_cast<interval_t>(bl->is_npc()->is_mob()->stats[mob_stat::SPEED]);
 
         return std::max(speed, 1_ms);
@@ -712,7 +712,7 @@ interval_t battle_get_adelay(dumb_ptr<block_list> bl)
         eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
         interval_t adelay = 4_s;
         int aspd_rate = 100;
-        if (bl->bl_type == BL::MOB)
+        if (bl->bl_type == BL::NPC)
             adelay = static_cast<interval_t>(bl->is_npc()->is_mob()->stats[mob_stat::ADELAY]);
 
         if (sc_data)
@@ -740,8 +740,8 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
         eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
         interval_t amotion = 2_s;
         int aspd_rate = 100;
-        if (bl->bl_type == BL::MOB)
-            amotion = get_mob_db(bl->is_npc()->is_mob()->mob_class).amotion;
+        if (bl->bl_type == BL::NPC)
+            amotion = get_mob_db(bl->is_npc()->is_mob()->npc_class).amotion;
 
         if (sc_data)
         {
@@ -760,9 +760,9 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
 interval_t battle_get_dmotion(dumb_ptr<block_list> bl)
 {
     nullpo_retr(interval_t::zero(), bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
     {
-        return get_mob_db(bl->is_npc()->is_mob()->mob_class).dmotion;
+        return get_mob_db(bl->is_npc()->is_mob()->npc_class).dmotion;
     }
     else if (bl->bl_type == BL::PC)
     {
@@ -777,7 +777,7 @@ LevelElement battle_get_element(dumb_ptr<block_list> bl)
     LevelElement ret = {2, Element::neutral};
 
     nullpo_retr(ret, bl);
-    if (bl->bl_type == BL::MOB)   // 10の位＝Lv*2、１の位＝属性
+    if (bl->bl_type == BL::NPC)   // 10の位＝Lv*2、１の位＝属性
         ret = bl->is_npc()->is_mob()->def_ele;
 
     return ret;
@@ -788,7 +788,7 @@ PartyId battle_get_party_id(dumb_ptr<block_list> bl)
     nullpo_retr(PartyId(), bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->status.party_id;
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
         if (md->master_id)
@@ -801,8 +801,8 @@ PartyId battle_get_party_id(dumb_ptr<block_list> bl)
 Race battle_get_race(dumb_ptr<block_list> bl)
 {
     nullpo_retr(Race::formless, bl);
-    if (bl->bl_type == BL::MOB)
-        return get_mob_db(bl->is_npc()->is_mob()->mob_class).race;
+    if (bl->bl_type == BL::NPC)
+        return get_mob_db(bl->is_npc()->is_mob()->npc_class).race;
     else if (bl->bl_type == BL::PC)
         return Race::demihuman;
     else
@@ -812,8 +812,8 @@ Race battle_get_race(dumb_ptr<block_list> bl)
 MobMode battle_get_mode(dumb_ptr<block_list> bl)
 {
     nullpo_retr(MobMode::CAN_MOVE, bl);
-    if (bl->bl_type == BL::MOB)
-        return get_mob_db(bl->is_npc()->is_mob()->mob_class).mode;
+    if (bl->bl_type == BL::NPC)
+        return get_mob_db(bl->is_npc()->is_mob()->npc_class).mode;
     // とりあえず動くということで1
     return MobMode::CAN_MOVE;
 }
@@ -846,7 +846,7 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
 
     switch (bl->bl_type)
     {
-    case BL::MOB:
+    case BL::NPC:
         return bl->is_npc()->is_mob()->sc_data;
     case BL::PC:
         return bl->is_player()->sc_data;
@@ -857,7 +857,7 @@ eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_
 Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->is_mob()->opt1;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt1;
@@ -869,7 +869,7 @@ Opt1 *battle_get_opt1(dumb_ptr<block_list> bl)
 Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->is_mob()->opt2;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt2;
@@ -881,7 +881,7 @@ Opt2 *battle_get_opt2(dumb_ptr<block_list> bl)
 Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->is_mob()->opt3;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->opt3;
@@ -893,7 +893,7 @@ Opt3 *battle_get_opt3(dumb_ptr<block_list> bl)
 Opt0 *battle_get_option(dumb_ptr<block_list> bl)
 {
     nullpo_retn(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return &bl->is_npc()->is_mob()->option;
     else if (bl->bl_type == BL::PC)
         return &bl->is_player()->status.option;
@@ -933,7 +933,7 @@ int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
     if (damage < 0)
         return battle_heal(bl, target, -damage, 0, flag);
 
-    if (target->bl_type == BL::MOB)
+    if (target->bl_type == BL::NPC)
     {                           // MOB
         dumb_ptr<npc_data_mob> md = target->is_npc()->is_mob();
         if (md && md->skilltimer && md->state.skillcastcancel)    // 詠唱妨害
@@ -965,7 +965,7 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
     if (hp < 0)
         return battle_damage(bl, target, -hp, flag);
 
-    if (target->bl_type == BL::MOB)
+    if (target->bl_type == BL::NPC)
         return mob_heal(target->is_npc()->is_mob(), hp);
     else if (target->bl_type == BL::PC)
         return pc_heal(target->is_player(), hp, sp);
@@ -976,7 +976,7 @@ int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
 int battle_stopattack(dumb_ptr<block_list> bl)
 {
     nullpo_retz(bl);
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         return mob_stopattack(bl->is_npc()->is_mob());
     else if (bl->bl_type == BL::PC)
         return pc_stopattack(bl->is_player());
@@ -996,7 +996,7 @@ int battle_calc_damage(dumb_ptr<block_list>, dumb_ptr<block_list> bl,
 
     nullpo_retz(bl);
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_type == BL::NPC)
         md = bl->is_npc()->is_mob();
 
     if (battle_config.skill_min_damage
@@ -1048,7 +1048,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     // ターゲット
     if (target->bl_type == BL::PC)
         tsd = target->is_player();
-    else if (target->bl_type == BL::MOB)
+    else if (target->bl_type == BL::NPC)
         tmd = target->is_npc()->is_mob();
     MobMode t_mode = battle_get_mode(target);
     t_sc_data = battle_get_sc_data(target);
@@ -1095,7 +1095,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
         atkmin = battle_get_atk(src);
         atkmax = battle_get_atk2(src);
     }
-    if (get_mob_db(md->mob_class).range > 3)
+    if (get_mob_db(md->npc_class).range > 3)
         flag = (flag & ~BF::RANGEMASK) | BF::LONG;
 
     if (atkmin > atkmax)
@@ -1328,7 +1328,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     // ターゲット
     if (target->bl_type == BL::PC)  //対象がPCなら
         tsd = target->is_player();   //tsdに代入(tmdはNULL)
-    else if (target->bl_type == BL::MOB)    //対象がMobなら
+    else if (target->bl_type == BL::NPC)    //対象がMobなら
         tmd = target->is_npc()->is_mob();   //tmdに代入(tsdはNULL)
     MobMode t_mode = battle_get_mode(target);  //対象のMode
     t_sc_data = battle_get_sc_data(target);    //対象のステータス異常
@@ -1657,7 +1657,7 @@ struct Damage battle_calc_weapon_attack(dumb_ptr<block_list> src,
 
     if (src->bl_type == BL::PC)
         wd = battle_calc_pc_weapon_attack(src, target, skill_num, skill_lv, wflag);    // weapon breaking [Valaris]
-    else if (src->bl_type == BL::MOB)
+    else if (src->bl_type == BL::NPC)
         wd = battle_calc_mob_weapon_attack(src, target, skill_num, skill_lv, wflag);
 
     return wd;
@@ -2035,7 +2035,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
     if (flag & BCT_ALL)
     {
-        if (target->bl_type == BL::MOB || target->bl_type == BL::PC)
+        if (target->bl_type == BL::NPC || target->bl_type == BL::PC)
             return 1;
         else
             return -1;
@@ -2046,7 +2046,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         return -1;
 
     // Mobでmaster_idがあってspecial_mob_aiなら、召喚主を求める
-    if (src->bl_type == BL::MOB)
+    if (src->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> md = src->is_npc()->is_mob();
         if (md && md->master_id)
@@ -2055,7 +2055,7 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 return 1;
             if (md->state.special_mob_ai)
             {
-                if (target->bl_type == BL::MOB)
+                if (target->bl_type == BL::NPC)
                 {               //special_mob_aiで対象がMob
                     dumb_ptr<npc_data_mob> tmd = target->is_npc()->is_mob();
                     if (tmd)
@@ -2088,8 +2088,8 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         (src->bl_type == BL::PC && pc_isdead(src->is_player())))
         return -1;
 
-    if ((ss->bl_type == BL::PC && target->bl_type == BL::MOB) ||
-        (ss->bl_type == BL::MOB && target->bl_type == BL::PC))
+    if ((ss->bl_type == BL::PC && target->bl_type == BL::NPC) ||
+        (ss->bl_type == BL::NPC && target->bl_type == BL::PC))
         return 0;               // PCvsMOBなら否定
 
     s_p = battle_get_party_id(ss);

@@ -56,7 +56,6 @@ class VarName;
 class MapName;
 class CharName;
 
-struct MobName;
 struct NpcName;
 struct ScriptLabel;
 struct ItemName;

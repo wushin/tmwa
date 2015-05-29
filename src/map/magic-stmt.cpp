@@ -429,7 +429,7 @@ int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 static
 void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int destx, int desty)
 {
-    if (target->bl_type == BL::PC || target->bl_type == BL::MOB)
+    if (target->bl_type == BL::PC || target->bl_type == BL::NPC)
     {
 
         switch (target->bl_type)
@@ -455,7 +455,7 @@ void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int des
                         character->bl_x, character->bl_y);
                 break;
             }
-            case BL::MOB:
+            case BL::NPC:
                 target->bl_x = destx;
                 target->bl_y = desty;
                 target->bl_m = destm;
@@ -496,7 +496,7 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
-    if (subject->bl_type == BL::MOB)
+    if (subject->bl_type == BL::NPC)
     {
         dumb_ptr<npc_data_mob> mob = subject->is_npc()->is_mob();
 
@@ -640,7 +640,7 @@ int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
     dumb_ptr<block_list> target = ARGENTITY(0);
     dumb_ptr<npc_data_mob> other;
 
-    if (target->bl_type == BL::MOB)
+    if (target->bl_type == BL::NPC)
         other = target->is_npc()->is_mob();
     else
         return 0;
@@ -694,7 +694,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
         mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
                 monster_id, 1, NpcEvent());
 
-        mob = map_id_is_mob(mob_id);
+        mob = map_id_is_npc(mob_id)->is_mob();
 
         if (mob)
         {
@@ -797,12 +797,12 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     if (caster->bl_type == BL::PC)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
-        if (target->bl_type == BL::MOB)
+        if (target->bl_type == BL::NPC)
         {
             dumb_ptr<npc_data_mob> mob = target->is_npc()->is_mob();
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
-                    mob->bl_id, mob->mob_class, damage_caused,
+                    mob->bl_id, mob->npc_class, damage_caused,
                     get_invocation_name(env));
         }
     }
@@ -1100,8 +1100,8 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             }
             return;
 
-        case BL::MOB:
-            if (filter == FOREACH_FILTER::MOB
+        case BL::NPC:
+            if (filter == FOREACH_FILTER::NPC
                 || filter == FOREACH_FILTER::ENTITY
                 || filter == FOREACH_FILTER::TARGET)
                 break;
@@ -1119,12 +1119,6 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
                 else
                     break;      /* Add the spell */
             }
-            else
-                return;
-
-        case BL::NPC:
-            if (filter == FOREACH_FILTER::NPC)
-                break;
             else
                 return;
 

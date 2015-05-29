@@ -124,7 +124,6 @@ CharName stringish<CharName>(VString<23> iv)
     return CharName(iv);
 }
 
-struct MobName : VString<23> {};
 struct NpcName : VString<23> {};
 struct ScriptLabel : VString<23> {};
 struct ItemName : VString<23> {};

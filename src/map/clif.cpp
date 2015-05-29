@@ -781,7 +781,7 @@ void clif_mob0078(dumb_ptr<npc_data_mob> md, Buffer& buf)
     fixed_78.opt1 = md->opt1;
     fixed_78.opt2 = md->opt2;
     fixed_78.option = md->option;
-    fixed_78.species = md->mob_class;
+    fixed_78.species = md->npc_class;
     // snip: stuff do do with disguise as a PC
     fixed_78.pos.x = md->bl_x;
     fixed_78.pos.y = md->bl_y;
@@ -813,7 +813,7 @@ void clif_mob007b(dumb_ptr<npc_data_mob> md, Buffer& buf)
     fixed_7b.opt1 = md->opt1;
     fixed_7b.opt2 = md->opt2;
     fixed_7b.option = md->option;
-    fixed_7b.mob_class = md->mob_class;
+    fixed_7b.npc_class = md->npc_class;
     // snip: stuff for monsters disguised as PCs
     fixed_7b.tick = gettick();
 
@@ -1030,7 +1030,7 @@ int clif_spawnmob(dumb_ptr<npc_data_mob> md)
         fixed_7c.opt1 = md->opt1;
         fixed_7c.opt2 = md->opt2;
         fixed_7c.option = md->option;
-        fixed_7c.species = md->mob_class;
+        fixed_7c.species = md->npc_class;
         fixed_7c.pos.x = md->bl_x;
         fixed_7c.pos.y = md->bl_y;
         Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
