@@ -788,12 +788,18 @@ PartyId battle_get_party_id(dumb_ptr<block_list> bl)
     nullpo_retr(PartyId(), bl);
     if (bl->bl_type == BL::PC)
         return bl->is_player()->status.party_id;
-    else if (bl->bl_type == BL::NPC)
+    else if (bl->bl_type == BL::NPC) 
     {
-        dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
-        if (md->master_id)
-            return wrap<PartyId>(-unwrap<BlockId>(md->master_id));
-        return wrap<PartyId>(-unwrap<BlockId>(md->bl_id));
+        dumb_ptr<npc_data> nd = bl->is_npc();
+        if (nd->npc_subtype == NpcSubtype::MOB)
+        {
+            dumb_ptr<npc_data_mob> md = bl->is_npc()->is_mob();
+            if (md->master_id)
+            {
+                return wrap<PartyId>(-unwrap<BlockId>(md->master_id));
+            }
+        }
+        return wrap<PartyId>(-unwrap<BlockId>(nd->bl_id));
     }
     return PartyId();
 }
