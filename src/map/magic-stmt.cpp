@@ -317,7 +317,7 @@ int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
     if (!caster)
         caster = subject;
 
-    if (caster->bl_type == BL::PC && subject->bl_type == BL::PC)
+    if (caster->bl_types.pc && subject->bl_types.pc)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
         dumb_ptr<map_session_data> subject_pc = subject->is_player();
@@ -333,7 +333,7 @@ static
 int op_itemheal(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
-    if (subject->bl_type == BL::PC)
+    if (subject->bl_types.pc)
     {
         pc_itemheal(subject->is_player(),
                      ARGINT(1), ARGINT(2));
@@ -429,39 +429,32 @@ int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 static
 void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int destx, int desty)
 {
-    if (target->bl_type == BL::PC || target->bl_type == BL::MOB)
+    if (target->bl_types.pc)
     {
+        dumb_ptr<map_session_data> character = target->is_player();
+        clif_clearchar(character, BeingRemoveWhy::WARPED);
+        map_delblock(character);
+        character->bl_x = destx;
+        character->bl_y = desty;
+        character->bl_m = destm;
 
-        switch (target->bl_type)
-        {
-            case BL::PC:
-            {
-                dumb_ptr<map_session_data> character = target->is_player();
-                clif_clearchar(character, BeingRemoveWhy::WARPED);
-                map_delblock(character);
-                character->bl_x = destx;
-                character->bl_y = desty;
-                character->bl_m = destm;
+        pc_touch_all_relevant_npcs(character);
 
-                pc_touch_all_relevant_npcs(character);
+        // Note that touching NPCs may have triggered warping and thereby updated x and y:
+        MapName map_name = character->bl_m->name_;
 
-                // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                MapName map_name = character->bl_m->name_;
-
-                // Warp part #1: update relevant data, interrupt trading etc.:
-                pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
-                // Warp part #2: now notify the client
-                clif_changemap(character, map_name,
-                        character->bl_x, character->bl_y);
-                break;
-            }
-            case BL::MOB:
-                target->bl_x = destx;
-                target->bl_y = desty;
-                target->bl_m = destm;
-                clif_fixmobpos(target->is_mob());
-                break;
-        }
+        // Warp part #1: update relevant data, interrupt trading etc.:
+        pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
+        // Warp part #2: now notify the client
+        clif_changemap(character, map_name,
+                character->bl_x, character->bl_y);
+    }
+    if (target->bl_types.mob)
+    {
+        target->bl_x = destx;
+        target->bl_y = desty;
+        target->bl_m = destm;
+        clif_fixmobpos(target->is_mob());
     }
 }
 
@@ -496,7 +489,7 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
-    if (subject->bl_type == BL::MOB)
+    if (subject->bl_types.mob)
     {
         dumb_ptr<mob_data> mob = subject->is_mob();
 
@@ -535,7 +528,7 @@ int op_status_change(dumb_ptr<env_t> env, Slice<val_t> args)
             ARGINT(2),
             static_cast<interval_t>(ARGINT(6)), invocation_id);
 
-    if (invocation_ && subject->bl_type == BL::PC)
+    if (invocation_ && subject->bl_types.pc)
         record_status_change(invocation_, subject->bl_id, static_cast<StatusChange>(ARGINT(1)));
 
     return 0;
@@ -564,7 +557,7 @@ int op_override_attack(dumb_ptr<env_t> env, Slice<val_t> args)
     int stopattack = ARGINT(6);
     dumb_ptr<map_session_data> subject;
 
-    if (psubject->bl_type != BL::PC)
+    if (!psubject->bl_types.pc)
         return 0;
 
     subject = psubject->is_player();
@@ -605,7 +598,7 @@ int op_create_item(dumb_ptr<env_t>, Slice<val_t> args)
     if (count <= 0)
         return 0;
 
-    if (entity->bl_type == BL::PC)
+    if (entity->bl_types.pc)
         subject = entity->is_player();
     else
         return 0;
@@ -640,7 +633,7 @@ int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
     dumb_ptr<block_list> target = ARGENTITY(0);
     dumb_ptr<mob_data> other;
 
-    if (target->bl_type == BL::MOB)
+    if (target->bl_types.mob)
         other = target->is_mob();
     else
         return 0;
@@ -680,7 +673,7 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
 
     dumb_ptr<map_session_data> owner = nullptr;
     if (monster_attitude == MonsterAttitude::SERVANT
-        && owner_e->bl_type == BL::PC)
+        && owner_e->bl_types.pc)
         owner = owner_e->is_player();
 
     for (i = 0; i < monster_count; i++)
@@ -771,9 +764,9 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     int target_hp = battle_get_hp(target);
     int mdef = battle_get_mdef(target);
 
-    if (target->bl_type == BL::PC
+    if (target->bl_types.pc
         && !target->bl_m->flag.get(MapFlag::PVP)
-        && (caster->bl_type == BL::PC)
+        && (caster->bl_types.pc)
         && ((caster->is_player()->state.pvpchannel > 1) && (target->is_player()->state.pvpchannel != caster->is_player()->state.pvpchannel)))
         return 0;               /* Cannot damage other players outside of pvp */
 
@@ -794,10 +787,10 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
             gettick(), interval_t::zero(), interval_t::zero(),
             damage_caused, 0, DamageType::NORMAL);
 
-    if (caster->bl_type == BL::PC)
+    if (caster->bl_types.pc)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
-        if (target->bl_type == BL::MOB)
+        if (target->bl_types.mob)
         {
             dumb_ptr<mob_data> mob = target->is_mob();
 
@@ -824,7 +817,7 @@ int op_emote(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_script_variable(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
     VarName varname = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
@@ -839,7 +832,7 @@ int op_set_script_variable(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_script_str(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
     VarName varname = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
@@ -854,7 +847,7 @@ int op_set_script_str(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_hair_colour(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -867,7 +860,7 @@ int op_set_hair_colour(dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_set_hair_style(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -885,7 +878,7 @@ int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);
     interval_t interval = static_cast<interval_t>(ARGINT(3));
-    dumb_ptr<map_session_data> c = ((args.size() > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : nullptr;
+    dumb_ptr<map_session_data> c = ((args.size() > 4) && (ENTITY_TYPE(4).pc)) ? ARGPC(4) : nullptr;
     interval_t delay = (args.size() > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
     interval_t delaytime[3] = { delay, delay, delay };
     dumb_ptr<map_session_data> owners[3] = { c, nullptr, nullptr };
@@ -910,7 +903,7 @@ int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
 static
 int op_gain_exp(dumb_ptr<env_t>, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
 
     if (!c)
         return 1;
@@ -965,7 +958,7 @@ void spell_effect_report_termination(BlockId invocation_id, BlockId bl_id,
 {
     dumb_ptr<invocation> invocation_ = map_id_is_spell(invocation_id);
 
-    if (!invocation_ || invocation_->bl_type != BL::SPELL)
+    if (!invocation_ || !invocation_->bl_types.spell)
         return;
 
     for (status_change_ref_t& cr : invocation_->status_change_refv)
@@ -983,7 +976,7 @@ void spell_effect_report_termination(BlockId invocation_id, BlockId bl_id,
 
     {
         dumb_ptr<block_list> entity = map_id2bl(bl_id);
-        if (entity->bl_type == BL::PC)
+        if (entity->bl_types.pc)
             FPRINTF(stderr,
                     "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n"_fmt,
                     bl_id, sc_id);
@@ -1078,56 +1071,57 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
         std::vector<BlockId> *entities_vp,
         FOREACH_FILTER filter)
 {
-    switch (target->bl_type)
+    switch (filter)
     {
 
-        case BL::PC:
-            if (filter == FOREACH_FILTER::PC
-                || filter == FOREACH_FILTER::ENTITY
-                || (filter == FOREACH_FILTER::TARGET
-                    && target->bl_m->flag.get(MapFlag::PVP)))
+        case FOREACH_FILTER::ENTITY:
+            if (target->bl_types.mob)
                 break;
-            else if (filter == FOREACH_FILTER::SPELL)
-            {                   /* Check all spells bound to the caster */
+            if (target->bl_types.pc && target->bl_m->flag.get(MapFlag::PVP))
+                break;
+            return;
+        case FOREACH_FILTER::TARGET:
+            if (target->bl_types.mob)
+                break;
+            if (target->bl_types.pc && target->bl_m->flag.get(MapFlag::PVP))
+                break;
+            return;
+        case FOREACH_FILTER::PC:
+            if (target->bl_types.pc && target->bl_m->flag.get(MapFlag::PVP))
+                break;
+            return;
+        case FOREACH_FILTER::SPELL:
+            if (target->bl_types.pc)
+            {
+                /* Check all spells bound to the caster */
                 dumb_ptr<invocation> invoc = target->is_player()->active_spells;
                 /* Add all spells locked onto thie PC */
-
                 while (invoc)
                 {
                     entities_vp->push_back(invoc->bl_id);
                     invoc = invoc->next_invocation;
                 }
-            }
-            return;
-
-        case BL::MOB:
-            if (filter == FOREACH_FILTER::MOB
-                || filter == FOREACH_FILTER::ENTITY
-                || filter == FOREACH_FILTER::TARGET)
-                break;
-            else
                 return;
-
-        case BL::SPELL:
-            if (filter == FOREACH_FILTER::SPELL)
+            }
+            if (target->bl_types.spell)
             {
                 dumb_ptr<invocation> invocation = target->is_spell();
-
                 /* Check whether the spell is `bound'-- if so, we'll consider it iff we see the caster(case BL::PC). */
                 if (bool(invocation->flags & INVOCATION_FLAG::BOUND))
                     return;
                 else
-                    break;      /* Add the spell */
+                    /* Add the spell */
+                    break;
             }
-            else
-                return;
-
-        case BL::NPC:
-            if (filter == FOREACH_FILTER::NPC)
+            return;
+        case FOREACH_FILTER::MOB:
+            if (target->bl_types.mob)
                 break;
-            else
-                return;
-
+            return;
+        case FOREACH_FILTER::NPC:
+            if (target->bl_types.npc)
+                break;
+            return;
         default:
             return;
     }

@@ -452,7 +452,7 @@ dumb_ptr<invocation> spell_instantiate(const effect_set_t *effect_set, dumb_ptr<
 
     caster = map_id2bl(retval->caster);    // must still exist
     retval->bl_id = map_addobject(retval);
-    retval->bl_type = BL::SPELL;
+    retval->bl_types.spell = true;
     retval->bl_m = caster->bl_m;
     retval->bl_x = caster->bl_x;
     retval->bl_y = caster->bl_y;
@@ -493,7 +493,7 @@ dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
     retval->bl_m = base->bl_m;
     retval->bl_x = base->bl_x;
     retval->bl_y = base->bl_y;
-    retval->bl_type = base->bl_type;
+    retval->bl_types = base->bl_types;
 
     retval->bl_id = map_addobject(retval);
     set_invocation(&env->varu[VAR_INVOCATION], retval);

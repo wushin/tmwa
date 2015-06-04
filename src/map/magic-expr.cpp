@@ -186,25 +186,21 @@ void magic_clear_var(val_t *v)
 static
 AString show_entity(dumb_ptr<block_list> entity)
 {
-    switch (entity->bl_type)
-    {
-        case BL::PC:
+        if (entity->bl_types.pc)
             return entity->is_player()->status_key.name.to__actual();
-        case BL::NPC:
+        if (entity->bl_types.npc)
             return entity->is_npc()->name;
-        case BL::MOB:
+        if (entity->bl_types.mob)
             return entity->is_mob()->name;
-        case BL::ITEM:
+        if (entity->bl_types.item)
             assert (0 && "There is no way this code did what it was supposed to do!"_s);
             /* Sorry about this one... */
             // WTF? item_data is a Item, not a struct item_data
             // return ((struct item_data *) (&entity->is_item()->item_data))->name;
             abort();
-        case BL::SPELL:
+        if (entity->bl_types.spell)
             return "%invocation(ERROR:this-should-not-be-an-entity)"_s;
-        default:
-            return "%unknown-entity"_s;
-    }
+        return "%unknown-entity"_s;
 }
 
 static
@@ -727,7 +723,7 @@ int fun_is_in(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_skill(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) != BL::PC
+    if (!ENTITY_TYPE(0).pc
         // don't convert to enum until after the range check
         // (actually it would be okay, I checked)
         || ARGINT(1) < 0
@@ -746,7 +742,7 @@ int fun_skill(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_his_shroud(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    *result = ValInt{(ENTITY_TYPE(0) == BL::PC && ARGPC(0)->state.shroud_active)};
+    *result = ValInt{(ENTITY_TYPE(0).pc && ARGPC(0)->state.shroud_active)};
     return 0;
 }
 
@@ -780,7 +776,7 @@ int fun_get_dir(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static                                                                  \
 int fun_get_##name(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)   \
 {                                                                       \
-    if (ENTITY_TYPE(0) == BL::PC)                                       \
+    if (ENTITY_TYPE(0).pc)                                              \
         *result = ValInt{ARGPC(0)->status.name};                        \
     else                                                                \
         *result = ValInt{0};                                            \
@@ -815,7 +811,7 @@ int fun_name_of(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_mob_id(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) != BL::MOB)
+    if (!ENTITY_TYPE(0).mob)
         return 1;
     *result = ValInt{unwrap<Species>(ARGMOB(0)->mob_class)};
     return 0;
@@ -915,7 +911,7 @@ int magic_find_item(Slice<val_t> args, int index, Item *item_, int *stackable)
 static
 int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
     int stackable;
     Item item;
 
@@ -931,7 +927,7 @@ int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
     int stackable;
     Item item;
     bool retval = false;
@@ -958,28 +954,28 @@ int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_is_married(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    *result = ValInt{(ENTITY_TYPE(0) == BL::PC && ARGPC(0)->status.partner_id)};
+    *result = ValInt{(ENTITY_TYPE(0).pc && ARGPC(0)->status.partner_id)};
     return 0;
 }
 
 static
 int fun_is_dead(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    *result = ValInt{(ENTITY_TYPE(0) == BL::PC && pc_isdead(ARGPC(0)))};
+    *result = ValInt{(ENTITY_TYPE(0).pc && pc_isdead(ARGPC(0)))};
     return 0;
 }
 
 static
 int fun_is_pc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    *result = ValInt{(ENTITY_TYPE(0) == BL::PC)};
+    *result = ValInt{(ENTITY_TYPE(0).pc)};
     return 0;
 }
 
 static
 int fun_partner(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->status.partner_id)
+    if (ENTITY_TYPE(0).pc && ARGPC(0)->status.partner_id)
     {
         *result =
             ValEntityPtr{map_nick2sd(map_charid2nick(ARGPC(0)->status.partner_id))};
@@ -1185,7 +1181,7 @@ int fun_read_script_int(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     VarName var_name = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
-    if (subject_p->bl_type != BL::PC)
+    if (!subject_p->bl_types.pc)
         return 1;
 
     *result = ValInt{get_script_var_i(subject_p->is_player(), var_name, array_index)};
@@ -1199,7 +1195,7 @@ int fun_read_script_str(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     VarName var_name = stringish<VarName>(ARGSTR(1));
     int array_index = 0;
 
-    if (subject_p->bl_type != BL::PC)
+    if (!subject_p->bl_types.pc)
         return 1;
 
     *result = ValString{get_script_var_s(subject_p->is_player(), var_name, array_index)};
@@ -1226,7 +1222,7 @@ int fun_rbox(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_running_status_update(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::MOB)
+    if (!ENTITY_TYPE(0).pc && !ENTITY_TYPE(0).mob)
         return 1;
 
     StatusChange sc = static_cast<StatusChange>(ARGINT(1));
@@ -1405,7 +1401,7 @@ int fun_dir_towards(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : nullptr;
+    dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0).pc) ? ARGPC(0) : nullptr;
 
     if (!sd)
         *result = ValInt{0};

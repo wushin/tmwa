@@ -42,7 +42,7 @@ namespace magic
 #define ARGSPELL(x) args[x].get_if<ValSpell>()->v_spell
 #define ARGINVOCATION(x) args[x].get_if<ValInvocationPtr>()->v_invocation
 
-#define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
+#define ENTITY_TYPE(x) ARGENTITY(x)->bl_types
 
 #define ARGPC(x)  (ARGENTITY(x)->is_player())
 #define ARGNPC(x)  (ARGENTITY(x)->is_npc())
