@@ -137,7 +137,7 @@ int skill_power(dumb_ptr<map_session_data> sd, SkillID skill_id)
 
 int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill)
 {
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
         return skill_power(bl->is_player(), skill);
     else
         return 0;

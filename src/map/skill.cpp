@@ -191,11 +191,11 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     if (skilllv < 0)
         return 0;
 
-    if (src->bl_type == BL::PC)
+    if (src->bl_types.pc)
     {
         sd = src->is_player();
     }
-    else if (src->bl_type == BL::MOB)
+    else if (src->bl_types.mob)
     {
         md = src->is_mob();
     }
@@ -214,7 +214,7 @@ int skill_additional_effect(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     //自分の耐性
     luk = battle_get_luk(src);
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_types.mob)
     {
         if (sc_def_mdef > 50)
             sc_def_mdef = 50;
@@ -275,11 +275,11 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         return 0;
     if (src->bl_prev == nullptr || dsrc->bl_prev == nullptr || bl->bl_prev == nullptr)    //prevよくわからない※
         return 0;
-    if (src->bl_type == BL::PC && pc_isdead(src->is_player()))  //術者？がPCですでに死んでいたら何もしない
+    if (src->bl_types.pc && pc_isdead(src->is_player()))  //術者？がPCですでに死んでいたら何もしない
         return 0;
-    if (dsrc->bl_type == BL::PC && pc_isdead(dsrc->is_player()))    //術者？がPCですでに死んでいたら何もしない
+    if (dsrc->bl_types.pc && pc_isdead(dsrc->is_player()))    //術者？がPCですでに死んでいたら何もしない
         return 0;
-    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))    //対象がPCですでに死んでいたら何もしない
+    if (bl->bl_types.pc && pc_isdead(bl->is_player()))    //対象がPCですでに死んでいたら何もしない
         return 0;
 
 //何もしない判定ここまで
@@ -315,17 +315,17 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
     if (bl->bl_prev != nullptr)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
-        if (bl->bl_type != BL::PC || !pc_isdead(sd))
+        if (!bl->bl_types.pc || !pc_isdead(sd))
         {
             if (damage > 0)
                 skill_additional_effect(src, bl, skillid, skilllv);
-            if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
+            if (bl->bl_types.mob && src != bl)    /* スキル使用条件のMOBスキル */
             {
                 dumb_ptr<mob_data> md = bl->is_mob();
                 if (battle_config.mob_changetarget_byskill == 1)
                 {
                     BlockId target = md->target_id;
-                    if (src->bl_type == BL::PC)
+                    if (src->bl_types.pc)
                         md->target_id = src->bl_id;
                     mobskill_use(md, tick, MobSkillCondition::ANY);
                     md->target_id = target;
@@ -336,7 +336,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         }
     }
 
-    if (src->bl_type == BL::PC
+    if (src->bl_types.pc
         && bool(dmg.flag & BF::WEAPON)
         && src != bl
         && src == dsrc
@@ -372,7 +372,7 @@ void skill_area_sub(dumb_ptr<block_list> bl,
 {
     nullpo_retv(bl);
 
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (!bl->bl_types.pc && !bl->bl_types.mob)
         return;
 
     if (battle_check_target(src, bl, flag) > 0)
@@ -394,14 +394,14 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     nullpo_retr(1, src);
     nullpo_retr(1, bl);
 
-    if (src->bl_type == BL::PC)
+    if (src->bl_types.pc)
         sd = src->is_player();
     if (sd && pc_isdead(sd))
         return 1;
 
     if (bl->bl_prev == nullptr)
         return 1;
-    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
+    if (bl->bl_types.pc && pc_isdead(bl->is_player()))
         return 1;
 
     MapBlockLock lock;
@@ -416,7 +416,7 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             if (flag.lo & 1)
             {
                 /* 個別にダメージを与える */
-                if (src->bl_type == BL::MOB)
+                if (src->bl_types.mob)
                 {
                     dumb_ptr<mob_data> mb = src->is_mob();
                     mb->hp = skill_area_temp_hp;
@@ -493,9 +493,9 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     nullpo_retr(1, src);
     nullpo_retr(1, bl);
 
-    if (src->bl_type == BL::PC)
+    if (src->bl_types.pc)
         sd = src->is_player();
-    else if (src->bl_type == BL::MOB)
+    else if (src->bl_types.mob)
         md = src->is_mob();
 
     sc_def_vit = 100 - (3 + battle_get_vit(bl) + battle_get_luk(bl) / 3);
@@ -503,11 +503,11 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
     sc_def_mdef = 100 - (3 + battle_get_mdef(bl) + battle_get_luk(bl) / 3);
     strip_fix = battle_get_dex(src) - battle_get_dex(bl);
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         dstsd = bl->is_player();
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
     {
         dstmd = bl->is_mob();
         if (sc_def_vit > 50)
@@ -567,7 +567,7 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 
     nullpo_retr(interval_t::zero(), bl);
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_types.mob)
     {                           // Crash fix [Valaris]
         md = bl->is_mob();
         skill = md->skillid;
@@ -589,9 +589,9 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 
     if (interval == interval_t::zero())
         return interval_t::zero();
-    if (castnodex > 0 && bl->bl_type == BL::PC)
+    if (castnodex > 0 && bl->bl_types.pc)
         castrate = 100;
-    else if (castnodex <= 0 && bl->bl_type == BL::PC)
+    else if (castnodex <= 0 && bl->bl_types.pc)
     {
         castrate = 100;
         interval =
@@ -618,7 +618,7 @@ interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
     if (interval <= interval_t::zero())
         return interval_t::zero();
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         if (battle_config.delay_dependon_dex)   /* dexの影響を計算する */
             interval =
@@ -639,7 +639,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
 {
     nullpo_retz(bl);
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
         tick_t tick = gettick();
@@ -648,7 +648,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
 
         return 0;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
     {
         dumb_ptr<mob_data> md = bl->is_mob();
         if (md->skilltimer)
@@ -675,7 +675,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
     eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retz(bl);
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (!bl->bl_types.pc && !bl->bl_types.mob)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_active: neither MOB nor PC !\n"_fmt);
@@ -699,7 +699,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     Opt3 *opt3;
 
     nullpo_retv(bl);
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (!bl->bl_types.pc && !bl->bl_types.mob)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_end: neither MOB nor PC !\n"_fmt);
@@ -748,7 +748,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
             break;
     }
 
-    if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
+    if (bl->bl_types.pc && type < StatusChange::SC_SENDMAX)
         clif_status_change(bl, type, 0);   /* アイコン消去 */
 
     switch (type)
@@ -779,7 +779,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     if (opt_flag)           /* optionの変更を伝える */
         clif_changeoption(bl);
 
-    if (bl->bl_type == BL::PC && calc_flag)
+    if (bl->bl_types.pc && calc_flag)
         pc_calcstatus(bl->is_player(), 0);  /* ステータス再計算 */
 }
 
@@ -819,7 +819,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
     if (not sc_data)
         return;
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
         sd = bl->is_player();
 
     if (sc_data[type].spell_invocation)
@@ -845,13 +845,13 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, BlockId id, StatusCh
                     int hp = battle_get_max_hp(bl);
                     if (battle_get_hp(bl) > hp >> 4)
                     {
-                        if (bl->bl_type == BL::PC)
+                        if (bl->bl_types.pc)
                         {
                             // TODO boundscheck this
                             hp = 3 + hp * 3 / 200;
                             pc_heal(bl->is_player(), -hp, 0);
                         }
-                        else if (bl->bl_type == BL::MOB)
+                        else if (bl->bl_types.mob)
                         {
                             dumb_ptr<mob_data> md = bl->is_mob();
                             hp = 3 + hp / 200;
@@ -938,11 +938,11 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     }
     if (scdef >= 100)
         return 0;
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         sd = bl->is_player();
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
     {
     }
     else
@@ -1025,7 +1025,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             return 0;
     }
 
-    if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
+    if (bl->bl_types.pc && type < StatusChange::SC_SENDMAX)
         clif_status_change(bl, type, 1);   /* アイコン表示 */
 
     /* optionの変更 */
@@ -1061,10 +1061,10 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                 bl->bl_id, type));
 
-    if (bl->bl_type == BL::PC && calc_flag)
+    if (bl->bl_types.pc && calc_flag)
         pc_calcstatus(sd, 0);  /* ステータス再計算 */
 
-    if (bl->bl_type == BL::PC && updateflag != SP::ZERO)
+    if (bl->bl_types.pc && updateflag != SP::ZERO)
         clif_updatestatus(sd, updateflag); /* ステータスをクライアントに送る */
 
     return 0;
