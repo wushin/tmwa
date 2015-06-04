@@ -75,7 +75,15 @@ struct block_list
     BlockId bl_id;
     Borrowed<map_local> bl_m = borrow(undefined_gat);
     short bl_x, bl_y;
-    BL bl_type;
+    struct
+    {
+        bool null = false;
+        bool pc = false;
+        bool npc = false;
+        bool mob = false;
+        bool item = false;
+        bool spell = false;
+    } bl_types;
 
     // This deletes the copy-ctor also
     // TODO give proper ctors.
@@ -646,6 +654,7 @@ int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);
+bool map_check_bl(BL type, BlockId id);
 int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id);  /* Continues a script either on a spell or on an NPC */
 dumb_ptr<map_session_data> map_nick2sd(CharName);
 int compare_item(Item *a, Item *b);
@@ -674,11 +683,11 @@ inline dumb_ptr<mob_data> block_list::as_mob() { return dumb_ptr<mob_data>(stati
 inline dumb_ptr<flooritem_data> block_list::as_item() { return dumb_ptr<flooritem_data>(static_cast<flooritem_data *>(this)) ; }
 //inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)) ; }
 
-inline dumb_ptr<map_session_data> block_list::is_player() { return bl_type == BL::PC ? as_player() : nullptr; }
-inline dumb_ptr<npc_data> block_list::is_npc() { return bl_type == BL::NPC ? as_npc() : nullptr; }
-inline dumb_ptr<mob_data> block_list::is_mob() { return bl_type == BL::MOB ? as_mob() : nullptr; }
-inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::ITEM ? as_item() : nullptr; }
-//inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
+inline dumb_ptr<map_session_data> block_list::is_player() { return bl_types.pc ? as_player() : nullptr; }
+inline dumb_ptr<npc_data> block_list::is_npc() { return bl_types.npc ? as_npc() : nullptr; }
+inline dumb_ptr<mob_data> block_list::is_mob() { return bl_types.mob ? as_mob() : nullptr; }
+inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_types.item ? as_item() : nullptr; }
+//inline dumb_ptr<invocation> block_list::is_spell() { return bl_type.spell ? as_spell() : nullptr; }
 
 // struct invocation is defined in another header
 

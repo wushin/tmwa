@@ -100,6 +100,25 @@ const CharName WISP_SERVER_NAME = stringish<CharName>("Server"_s);
 
 map_local undefined_gat = [](){ map_local rv {}; rv.name_ = stringish<MapName>("undefined.gat"_s); return rv; }();
 
+bool map_check_bl(BL type, BlockId id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    switch (type)
+    {
+        case BL::PC:
+            return bl->bl_types.pc;
+        case BL::NPC:
+            return bl->bl_types.npc;
+        case BL::SPELL:
+            return bl->bl_types.spell;
+        case BL::ITEM:
+            return bl->bl_types.item;
+        case BL::MOB:
+            return bl->bl_types.mob;
+        case BL::NUL:
+            return bl->bl_types.null;
+    }
+}
 /*==========================================
  * 全map鯖総計での接続数設定
  * (char鯖から送られてくる)
@@ -168,7 +187,7 @@ int map_addblock(dumb_ptr<block_list> bl)
         x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return 1;
 
-    if (bl->bl_type == BL::MOB)
+    if (bl->bl_types.mob)
     {
         bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).mobs_only;
         bl->bl_prev = dumb_ptr<block_list>(&bl_head);
@@ -183,7 +202,7 @@ int map_addblock(dumb_ptr<block_list> bl)
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
         m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal = bl;
-        if (bl->bl_type == BL::PC)
+        if (bl->bl_types.pc)
             m->users++;
     }
 
@@ -211,7 +230,7 @@ int map_delblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
         bl->bl_m->users--;
 
     if (bl->bl_next)
@@ -219,7 +238,7 @@ int map_delblock(dumb_ptr<block_list> bl)
     if (bl->bl_prev == dumb_ptr<block_list>(&bl_head))
     {
         // リストの頭なので、map[]のblock_listを更新する
-        if (bl->bl_type == BL::MOB)
+        if (bl->bl_types.mob)
         {
             bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).mobs_only = bl->bl_next;
         }
@@ -256,7 +275,7 @@ int map_count_oncell(Borrowed<map_local> m, int x, int y)
     bl = m->blocks.ref(bx, by).normal;
     for (; bl; bl = bl->bl_next)
     {
-        if (bl->bl_x == x && bl->bl_y == y && bl->bl_type == BL::PC)
+        if (bl->bl_x == x && bl->bl_y == y && bl->bl_types.pc)
             count++;
     }
     bl = m->blocks.ref(bx, by).mobs_only;
@@ -304,7 +323,7 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
                 dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
                 for (; bl; bl = bl->bl_next)
                 {
-                    if (type != BL::NUL && bl->bl_type != type)
+                    if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
@@ -384,7 +403,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                 dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
                 for (; bl; bl = bl->bl_next)
                 {
-                    if (type != BL::NUL && bl->bl_type != type)
+                    if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
@@ -393,7 +412,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                 bl = m->blocks.ref(bx, by).mobs_only;
                 for (; bl; bl = bl->bl_next)
                 {
-                    if (type != BL::NUL && bl->bl_type != type)
+                    if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
@@ -421,7 +440,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                 dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
                 for (; bl; bl = bl->bl_next)
                 {
-                    if (type != BL::NUL && bl->bl_type != type)
+                    if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                         continue;
                     if (!(bl->bl_x >= x0 && bl->bl_x <= x1
                             && bl->bl_y >= y0 && bl->bl_y <= y1))
@@ -435,7 +454,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                 bl = m->blocks.ref(bx, by).mobs_only;
                 for (; bl; bl = bl->bl_next)
                 {
-                    if (type != BL::NUL && bl->bl_type != type)
+                    if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                         continue;
                     if (!(bl->bl_x >= x0 && bl->bl_x <= x1
                              && bl->bl_y >= y0 && bl->bl_y <= y1))
@@ -476,7 +495,7 @@ void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
         for (; bl; bl = bl->bl_next)
         {
-            if (type != BL::NUL && bl->bl_type != type)
+            if (type != BL::NUL && !map_check_bl(type, bl->bl_id))
                 continue;
             if (bl->bl_x == x && bl->bl_y == y)
                 bl_list.push_back(bl);
@@ -543,11 +562,11 @@ void map_delobjectnofree(BlockId id, BL type)
     if (!object[id._value])
         return;
 
-    if (object[id._value]->bl_type != type)
+    if (!map_check_bl(type, id))
     {
-        FPRINTF(stderr, "Incorrect type: expected %d, got %d\n"_fmt,
+        FPRINTF(stderr, "Incorrect type: expected %d, got %s\n"_fmt,
                 type,
-                object[id._value]->bl_type);
+                map_check_bl(type, id));
         abort();
     }
 
@@ -576,7 +595,7 @@ void map_delobject(BlockId id, BL type)
         return;
 
     map_delobjectnofree(id, type);
-    if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
+    if (obj->bl_types.pc)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
         pc_cleanup(obj->is_player());
 
     MapBlockLock::freeblock(obj);
@@ -596,7 +615,7 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
         if (!object[i._value])
             continue;
         {
-            if (type != BL::NUL && object[i._value]->bl_type != type)
+            if (!map_check_bl(BL::NUL, i) && !map_check_bl(type, i))
                 continue;
             bl_list.push_back(object[i._value]);
         }
@@ -628,7 +647,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, BlockId id)
 {
     assert (id < MAX_FLOORITEM);
     dumb_ptr<block_list> obj = object[id._value];
-    assert (obj && obj->bl_type == BL::ITEM);
+    assert (obj && obj->bl_types.item);
     dumb_ptr<flooritem_data> fitem = obj->is_item();
     if (!tid)
         fitem->cleartimer.cancel();
@@ -676,7 +695,7 @@ BlockId map_addflooritem_any(Item *item_data, int amount,
         return BlockId();
 
     fitem.new_();
-    fitem->bl_type = BL::ITEM;
+    fitem->bl_types.item = true;
     fitem->bl_prev = fitem->bl_next = nullptr;
     fitem->bl_m = m;
     fitem->bl_x = xy.first;
@@ -1439,24 +1458,16 @@ void cleanup_sub(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
 
-    switch (bl->bl_type)
-    {
-        case BL::PC:
-            map_delblock(bl);  // There is something better...
-            break;
-        case BL::NPC:
-            npc_delete(bl->is_npc());
-            break;
-        case BL::MOB:
-            mob_delete(bl->is_mob());
-            break;
-        case BL::ITEM:
-            map_clearflooritem(bl->bl_id);
-            break;
-        case BL::SPELL:
-            magic::spell_free_invocation(bl->is_spell());
-            break;
-    }
+    if (bl->bl_types.pc)
+        map_delblock(bl);  // There is something better...
+    if (bl->bl_types.npc)
+        npc_delete(bl->is_npc());
+    if (bl->bl_types.mob)
+        mob_delete(bl->is_mob());
+    if (bl->bl_types.item)
+        map_clearflooritem(bl->bl_id);
+    if (bl->bl_types.spell)
+        magic::spell_free_invocation(bl->is_spell());
 }
 
 int compare_item(Item *a, Item *b)
@@ -1514,14 +1525,10 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, BlockId id)
     if (!bl)
         return 0;
 
-    switch (bl->bl_type)
-    {
-        case BL::NPC:
-            return npc_scriptcont(sd, id);
-        case BL::SPELL:
-            magic::spell_execute_script(bl->is_spell());
-            break;
-    }
+    if (bl->bl_types.npc)
+        return npc_scriptcont(sd, id);
+    if (bl->bl_types.spell)
+        magic::spell_execute_script(bl->is_spell());
 
     return 0;
 }

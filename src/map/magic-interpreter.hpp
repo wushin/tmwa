@@ -603,7 +603,7 @@ struct invocation : block_list
 
 // inlines for map.hpp
 inline dumb_ptr<magic::invocation> block_list::as_spell() { return dumb_ptr<magic::invocation>(static_cast<magic::invocation *>(this)); }
-inline dumb_ptr<magic::invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
+inline dumb_ptr<magic::invocation> block_list::is_spell() { return bl_types.spell ? as_spell() : nullptr; }
 
 namespace magic
 {
