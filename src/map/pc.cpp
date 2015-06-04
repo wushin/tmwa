@@ -289,7 +289,7 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
 {
     nullpo_retz(src);
 
-    if (src->bl_type != BL::PC || target->bl_type != BL::PC)
+    if (!src->bl_types.pc || !target->bl_types.pc)
         return 0;
     if ((src->state.pvpchannel == 1) && (target->state.pvpchannel == 1) && !src->bl_m->flag.get(MapFlag::NOPVP))
         return 1;
@@ -322,7 +322,7 @@ void pc_pvp_timer(TimerData *, tick_t, BlockId id)
     dumb_ptr<map_session_data> sd = map_id2sd(id);
 
     assert (sd != nullptr);
-    assert (sd->bl_type == BL::PC);
+    assert (sd->bl_types.pc);
 }
 
 int pc_setpvptimer(dumb_ptr<map_session_data> sd, interval_t val)
@@ -349,7 +349,7 @@ void pc_invincible_timer(TimerData *, tick_t, BlockId id)
     dumb_ptr<map_session_data> sd = map_id2sd(id);
 
     assert (sd != nullptr);
-    assert (sd->bl_type == BL::PC);
+    assert (sd->bl_types.pc);
 }
 
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t val)
@@ -417,14 +417,14 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
 
     if (id == bl->bl_id || (src && id == src->bl_id))
         return;
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
         if (sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
     {
         dumb_ptr<mob_data> md = bl->is_mob();
         if (md->target_id == id && md->timer
@@ -518,7 +518,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     sd->sex = sex;
     sd->state.auth = 0;
     sd->state.connect_new = 0;
-    sd->bl_type = BL::PC;
+    sd->bl_types.pc = true;
     sd->canact_tick = sd->canmove_tick = gettick();
     sd->canlog_tick = gettick();
     sd->state.waitingdisconnect = 0;
@@ -2583,7 +2583,7 @@ void pc_attack_timer(TimerData *, tick_t tick, BlockId id)
     if (bl == nullptr || bl->bl_prev == nullptr)
         return;
 
-    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
+    if (bl->bl_types.pc && pc_isdead(bl->is_player()))
         return;
 
     // 同じmapでないなら攻撃しない
@@ -2682,7 +2682,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
     if (bl == nullptr)
         return 1;
 
-    if (bl->bl_type == BL::NPC)
+    if (bl->bl_types.npc)
     {                           // monster npcs [Valaris]
         npc_click(sd, target_id);
         return 0;
@@ -3159,7 +3159,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
     if (src)
     {
-        if (src->bl_type == BL::PC)
+        if (src->bl_types.pc)
         {
             MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d"_fmt,
                     src->is_player()->status_key.char_id,
@@ -3233,7 +3233,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
                 sd->status.base_exp -=
                     static_cast<double>(pc_nextbaseexp(sd)) *
                     static_cast<double>(battle_config.death_penalty_base) / 10000;
-            if (battle_config.pk_mode && src && src->bl_type == BL::PC)
+            if (battle_config.pk_mode && src && src->bl_types.pc)
                 sd->status.base_exp -=
                     static_cast<double>(pc_nextbaseexp(sd)) *
                     static_cast<double>(battle_config.death_penalty_base) / 10000;
@@ -3244,7 +3244,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
                     sd->status.base_exp -=
                         static_cast<double>(sd->status.base_exp) *
                         static_cast<double>(battle_config.death_penalty_base) / 10000;
-                if (battle_config.pk_mode && src && src->bl_type == BL::PC)
+                if (battle_config.pk_mode && src && src->bl_types.pc)
                     sd->status.base_exp -=
                         static_cast<double>(sd->status.base_exp) *
                         static_cast<double>(battle_config.death_penalty_base) / 10000;
@@ -3258,7 +3258,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
                 sd->status.job_exp -=
                     static_cast<double>(pc_nextjobexp(sd)) *
                     static_cast<double>(battle_config.death_penalty_job) / 10000;
-            if (battle_config.pk_mode && src && src->bl_type == BL::PC)
+            if (battle_config.pk_mode && src && src->bl_types.pc)
                 sd->status.job_exp -=
                     static_cast<double>(pc_nextjobexp(sd)) *
                     static_cast<double>(battle_config.death_penalty_job) / 10000;
@@ -3269,7 +3269,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
                     sd->status.job_exp -=
                         static_cast<double>(sd->status.job_exp) *
                         static_cast<double>(battle_config.death_penalty_job) / 10000;
-                if (battle_config.pk_mode && src && src->bl_type == BL::PC)
+                if (battle_config.pk_mode && src && src->bl_types.pc)
                     sd->status.job_exp -=
                         static_cast<double>(sd->status.job_exp) *
                         static_cast<double>(battle_config.death_penalty_job) / 10000;
@@ -3287,7 +3287,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (!sd->bl_m->flag.get(MapFlag::PVP_NOCALCRANK))
         {
             sd->pvp_point -= 5;
-            if (src && src->bl_type == BL::PC)
+            if (src && src->bl_types.pc)
                 src->is_player()->pvp_point++;
             pc_setdead(sd);
         }
@@ -3302,7 +3302,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         }
     }
 
-    if (src && src->bl_type == BL::PC)
+    if (src && src->bl_types.pc)
     {
         // [Fate] PK death, trigger scripts
         argrec_t arg[3] =
