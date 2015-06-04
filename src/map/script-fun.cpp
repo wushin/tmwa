@@ -1827,7 +1827,7 @@ void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, ItemNameId i
     {
         (*amount) += drop->item_data.amount;
         clif_clearflooritem(drop, nullptr);
-        map_delobject(drop->bl_id, drop->bl_type);
+        map_delobject(drop->bl_id, BL::ITEM);
     }
 }
 
