@@ -648,6 +648,7 @@ int pc_authok(AccountId id, int login_id2,
     tick_t tick = gettick();
 
     sd = map_id2sd(account_to_block(id));
+    sd->bl_types.pc = true;
     if (sd == nullptr)
         return 1;
 
