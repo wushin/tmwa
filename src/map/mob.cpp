@@ -143,6 +143,7 @@ void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, Species mob_class
     md->bl_next = nullptr;
     md->n = 0;
     md->mob_class = mob_class;
+    md->bl_types.mob = true;
     md->bl_id = npc_get_new_npc_id();
 
     really_memzero_this(&md->state);
@@ -453,7 +454,6 @@ BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
 
         md->npc_event = event;
 
-        md->bl_type = BL::MOB;
         map_addiddb(md);
         mob_spawn(md->bl_id);
     }
@@ -724,9 +724,9 @@ int mob_check_attack(dumb_ptr<mob_data> md)
         return 0;
     }
 
-    if (tbl->bl_type == BL::PC)
+    if (tbl->bl_types.pc)
         tsd = tbl->is_player();
-    else if (tbl->bl_type == BL::MOB)
+    else if (tbl->bl_types.mob)
         tmd = tbl->is_mob();
     else
         return 0;
@@ -823,7 +823,7 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
     int radius = battle_config.mob_splash_radius;
-    if (radius >= 0 && tbl->bl_type == BL::PC && !tbl->bl_m->flag.get(MapFlag::TOWN))
+    if (radius >= 0 && tbl->bl_types.pc && !tbl->bl_m->flag.get(MapFlag::TOWN))
         map_foreachinarea(std::bind(mob_ancillary_attack, ph::_1, md, tbl, tick),
                 tbl->bl_m,
                 tbl->bl_x - radius, tbl->bl_y - radius,
@@ -941,7 +941,7 @@ void mob_timer(TimerData *, tick_t tick, BlockId id, unsigned char data)
         return;
     }
 
-    if (bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (bl->bl_types.null || !bl->bl_types.mob)
         return;
 
     md = bl->is_mob();
@@ -1043,13 +1043,13 @@ int mob_setdelayspawn(BlockId id)
     if ((bl = map_id2bl(id)) == nullptr)
         return -1;
 
-    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (!bl || bl->bl_types.null || !bl->bl_types.mob)
         return -1;
 
     md = bl->is_mob();
     nullpo_retr(-1, md);
 
-    if (!md || md->bl_type != BL::MOB)
+    if (!md || !md->bl_types.mob)
         return -1;
 
     // Processing of MOB which is not revitalized
@@ -1089,13 +1089,13 @@ int mob_spawn(BlockId id)
     bl = map_id2bl(id);
     nullpo_retr(-1, bl);
 
-    if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
+    if (!bl || bl->bl_types.null || !bl->bl_types.mob)
         return -1;
 
     md = bl->is_mob();
     nullpo_retr(-1, md);
 
-    if (!md || md->bl_type == BL::NUL || md->bl_type != BL::MOB)
+    if (!md || md->bl_types.null || !md->bl_types.mob)
         return -1;
 
     md->last_spawntime = tick;
@@ -1114,8 +1114,8 @@ int mob_spawn(BlockId id)
                 x = random_::in(1, md->bl_m->xs - 2);
                 y = random_::in(1, md->bl_m->ys - 2);
             }
-            else
-            {
+                else
+                {
                 // TODO: move this logic earlier - possibly all the way
                 // into the data files
                 x = md->spawn.x0 - md->spawn.xs / 2 + random_::in(0, md->spawn.xs);
@@ -1287,7 +1287,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
     dx = abs(bl->bl_x - md->bl_x);
     dy = abs(bl->bl_y - md->bl_y);
 
-    if (bl->bl_type == BL::PC && battle_config.monsters_ignore_gm == 1)
+    if (bl->bl_types.pc && battle_config.monsters_ignore_gm == 1)
     {                           // option to have monsters ignore GMs [Valaris]
         dumb_ptr<map_session_data> sd = bl->is_player();
         if (pc_isGM(sd))
@@ -1311,7 +1311,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
         -1)
         return 1;
 
-    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
+    if (!bl->bl_types.pc && !bl->bl_types.mob)
         return 0;
 
     // It judges whether it can adjoin or not.
@@ -1370,7 +1370,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
             || race == Race::_insect
             || race == Race::_demon))
     {
-        if (bl->bl_type == BL::PC)
+        if (bl->bl_types.pc)
         {
             sd = bl->is_player();
             nullpo_retz(sd);
@@ -1382,7 +1382,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
         }
 
         md->target_id = bl->bl_id; // Since there was no disturbance, it locks on to target.bl_
-        if (bl->bl_type == BL::PC || bl->bl_type == BL::MOB)
+        if (bl->bl_types.pc || bl->bl_types.mob)
             md->state.attackable = true;
         else
             md->state.attackable = false;
@@ -1410,9 +1410,9 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
     nullpo_retv(smd);
     nullpo_retv(pcc);
 
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
         tsd = bl->is_player();
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
         tmd = bl->is_mob();
     else
         return;
@@ -1566,7 +1566,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     mode = get_mob_db(md->mob_class).mode;
 
     // It is not main monster/leader.
-    if (!mmd || mmd->bl_type != BL::MOB || mmd->bl_id != md->master_id)
+    if (!mmd || !mmd->bl_types.mob || mmd->bl_id != md->master_id)
         return 0;
 
     // Since it is in the map on which the master is not, teleport is carried out and it pursues.
@@ -1820,7 +1820,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         dumb_ptr<map_session_data> asd = nullptr;
         if (abl)
         {
-            if (abl->bl_type == BL::PC)
+            if (abl->bl_types.pc)
                 asd = abl->is_player();
             if (asd == nullptr || md->bl_m != abl->bl_m || abl->bl_prev == nullptr
                 || asd->invincible_timer || pc_isinvisible(asd)
@@ -1888,9 +1888,9 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     {
         if ((tbl = map_id2bl(md->target_id)))
         {
-            if (tbl->bl_type == BL::PC)
+            if (tbl->bl_types.pc)
                 tsd = tbl->is_player();
-            else if (tbl->bl_type == BL::MOB)
+            else if (tbl->bl_types.mob)
                 tmd = tbl->is_mob();
             if (tsd || tmd)
             {
@@ -1983,7 +1983,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
             }
             else
             {                   // ルートモンスター処理
-                if (tbl == nullptr || tbl->bl_type != BL::ITEM || tbl->bl_m != md->bl_m
+                if (tbl == nullptr || !tbl->bl_types.item || tbl->bl_m != md->bl_m
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
                                   tbl->bl_y)) >= md->min_chase
@@ -2105,7 +2105,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
 {
     nullpo_retv(bl);
 
-    if (bl->bl_type != BL::MOB)
+    if (!bl->bl_types.mob)
         return;
 
     dumb_ptr<mob_data> md = bl->is_mob();
@@ -2363,7 +2363,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     max_hp = battle_get_max_hp(md);
 
-    if (src && src->bl_type == BL::PC)
+    if (src && src->bl_types.pc)
     {
         sd = src->is_player();
         mvp_sd = sd;
@@ -2426,12 +2426,12 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             if (!md->attacked_id && md->state.special_mob_ai == 0)
                 md->attacked_id = sd->bl_id;
         }
-        if (src && src->bl_type == BL::MOB
+        if (src && src->bl_types.mob
             && src->is_mob()->state.special_mob_ai)
         {
             dumb_ptr<mob_data> md2 = src->is_mob();
             dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
-            if (master_bl && master_bl->bl_type == BL::PC)
+            if (master_bl && master_bl->bl_types.pc)
             {
                 MAP_LOG_PC(master_bl->is_player(),
                         "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d"_fmt,
@@ -2481,7 +2481,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     max_hp = battle_get_max_hp(md);
 
-    if (src && src->bl_type == BL::MOB)
+    if (src && src->bl_types.mob)
         mob_unlocktarget(src->is_mob(), tick);
 
     // map外に消えた人は計算から除くので
@@ -2946,7 +2946,6 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value_, int amount, int flag)
             md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
 
             md->npc_event = NpcEvent();
-            md->bl_type = BL::MOB;
             map_addiddb(md);
             mob_spawn(md->bl_id);
 
@@ -2970,14 +2969,14 @@ void mob_counttargeted_sub(dumb_ptr<block_list> bl,
 
     if (id == bl->bl_id || (src && id == src->bl_id))
         return;
-    if (bl->bl_type == BL::PC)
+    if (bl->bl_types.pc)
     {
         dumb_ptr<map_session_data> sd = bl->is_player();
         if (sd && sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
-    else if (bl->bl_type == BL::MOB)
+    else if (bl->bl_types.mob)
     {
         dumb_ptr<mob_data> md = bl->is_mob();
         if (md && md->target_id == id && md->timer
@@ -3027,7 +3026,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
         PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n"_fmt, mbl->bl_id);
         return;
     }
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
+    if (!md->bl_types.mob || md->bl_prev == nullptr)
         return;
 
     if (bool(md->opt1))
@@ -3092,7 +3091,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
     md = bl->is_mob();
     nullpo_retv(md);
 
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
+    if (!md->bl_types.mob || md->bl_prev == nullptr)
         return;
 
     if (bool(md->opt1))
@@ -3211,7 +3210,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
         return 0;
 
     // 射程と障害物チェック
-    bl.bl_type = BL::NUL;
+    bl.bl_types.null = true;
     bl.bl_m = md->bl_m;
     bl.bl_x = skill_x;
     bl.bl_y = skill_y;
