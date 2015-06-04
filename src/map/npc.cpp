@@ -81,7 +81,7 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 
     nullpo_retv(bl);
 
-    assert (bl->bl_type == BL::PC);
+    assert (bl->bl_types.pc);
     {
         sd = bl->is_player();
 
@@ -580,7 +580,7 @@ int npc_checknear(dumb_ptr<map_session_data> sd, BlockId id)
     // this actually happens
     if (nd == nullptr)
         return 1;
-    if (nd->bl_type != BL::NPC)
+    if (!nd->bl_types.npc)
         return 1;
 
     if (nd->npc_class == INVISIBLE_CLASS)

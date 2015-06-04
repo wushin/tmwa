@@ -183,7 +183,7 @@ bool npc_load_warp(ast::npc::Warp& warp)
     }
 
     npc_warp++;
-    nd->bl_type = BL::NPC;
+    nd->bl_types.npc = true;
     nd->npc_subtype = NpcSubtype::WARP;
     map_addblock(nd);
     clif_spawnnpc(nd);
@@ -244,7 +244,7 @@ bool npc_load_shop(ast::npc::Shop& shop)
     nd->opt3 = Opt3::ZERO;
 
     npc_shop++;
-    nd->bl_type = BL::NPC;
+    nd->bl_types.npc = true;
     nd->npc_subtype = NpcSubtype::SHOP;
     nd->n = map_addnpc(m, nd);
     map_addblock(nd);
@@ -318,7 +318,7 @@ bool npc_load_monster(ast::npc::Monster& monster)
 
         md->npc_event = eventname;
 
-        md->bl_type = BL::MOB;
+        md->bl_types.mob = true;
         map_addiddb(md);
         mob_spawn(md->bl_id);
 
@@ -458,7 +458,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->opt3 = Opt3::ZERO;
 
     npc_script++;
-    nd->bl_type = BL::NPC;
+    nd->bl_types.npc = true;
     nd->npc_subtype = NpcSubtype::SCRIPT;
 
     register_npc_name(nd);
@@ -580,7 +580,7 @@ bool npc_load_script_map(ast::script::ScriptBody& body, ast::npc::ScriptMap& scr
     nd->opt3 = Opt3::ZERO;
 
     npc_script++;
-    nd->bl_type = BL::NPC;
+    nd->bl_types.npc = true;
     nd->npc_subtype = NpcSubtype::SCRIPT;
 
     nd->n = map_addnpc(m, nd);
@@ -681,7 +681,7 @@ dumb_ptr<npc_data> npc_spawn_text(Borrowed<map_local> m, int x, int y,
     retval->bl_x = x;
     retval->bl_y = y;
     retval->bl_m = m;
-    retval->bl_type = BL::NPC;
+    retval->bl_types.npc = true;
     retval->npc_subtype = NpcSubtype::MESSAGE;
 
     retval->name = name;
