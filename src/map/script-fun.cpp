@@ -1413,20 +1413,20 @@ void builtin_getexp(ScriptState *st)
 static
 void builtin_monster(ScriptState *st)
 {
-    Species mob_class;
+    Species npc_class;
     int amount, x, y;
     NpcEvent event;
 
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
     x = conv_num(st, &AARG(1));
     y = conv_num(st, &AARG(2));
-    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(3))));
-    mob_class = wrap<Species>(conv_num(st, &AARG(4)));
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
+    npc_class = wrap<Species>(conv_num(st, &AARG(4)));
     amount = conv_num(st, &AARG(5));
     if (HARG(6))
         extract(ZString(conv_str(st, &AARG(6))), &event);
 
-    mob_once_spawn(map_id2sd(st->rid), mapname, x, y, str, mob_class, amount,
+    mob_once_spawn(map_id2sd(st->rid), mapname, x, y, str, npc_class, amount,
             event);
 }
 
@@ -1437,7 +1437,7 @@ void builtin_monster(ScriptState *st)
 static
 void builtin_areamonster(ScriptState *st)
 {
-    Species mob_class;
+    Species npc_class;
     int amount, x0, y0, x1, y1;
     NpcEvent event;
 
@@ -1446,13 +1446,13 @@ void builtin_areamonster(ScriptState *st)
     y0 = conv_num(st, &AARG(2));
     x1 = conv_num(st, &AARG(3));
     y1 = conv_num(st, &AARG(4));
-    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(5))));
-    mob_class = wrap<Species>(conv_num(st, &AARG(6)));
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARG(5))));
+    npc_class = wrap<Species>(conv_num(st, &AARG(6)));
     amount = conv_num(st, &AARG(7));
     if (HARG(8))
         extract(ZString(conv_str(st, &AARG(8))), &event);
 
-    mob_once_spawn_area(map_id2sd(st->rid), mapname, x0, y0, x1, y1, str, mob_class,
+    mob_once_spawn_area(map_id2sd(st->rid), mapname, x0, y0, x1, y1, str, npc_class,
             amount, event);
 }
 
@@ -1463,19 +1463,22 @@ void builtin_areamonster(ScriptState *st)
 static
 void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 {
-    dumb_ptr<mob_data> md = bl->is_mob();
-    if (event)
+    dumb_ptr<npc_data> md = bl->is_npc();
+    if (md)
     {
-        if (event == md->npc_event)
-            mob_delete(md);
-        return;
-    }
-    else if (!event)
-    {
-        if (md->spawn.delay1 == static_cast<interval_t>(-1)
-            && md->spawn.delay2 == static_cast<interval_t>(-1))
-            mob_delete(md);
-        return;
+        if (event)
+        {
+            if (event == md->npc_event)
+                mob_delete(md);
+            return;
+        }
+        else if (!event)
+        {
+            if (md->spawn.delay1 == static_cast<interval_t>(-1)
+                && md->spawn.delay2 == static_cast<interval_t>(-1))
+                mob_delete(md);
+            return;
+        }
     }
 }
 
@@ -1493,7 +1496,7 @@ void builtin_killmonster(ScriptState *st)
             m,
             0, 0,
             m->xs, m->ys,
-            BL::MOB);
+            BL::NPC);
 }
 
 /*==========================================
@@ -2204,8 +2207,12 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 static
 void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
-    if (event == bl->is_mob()->npc_event)
-        (*c)++;
+    dumb_ptr<npc_data> md = bl->is_npc();
+    if (md)
+    {
+        if (event == md->npc_event)
+            (*c)++;
+    }
 }
 
 static
@@ -2226,7 +2233,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
             m,
             0, 0,
             m->xs, m->ys,
-            BL::MOB);
+            BL::NPC);
 
     push_int<ScriptDataInt>(st->stack, (c - 1));
 

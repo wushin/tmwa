@@ -39,8 +39,8 @@ namespace tmwa
 {
 namespace map
 {
-#define ENGLISH_NAME stringish<MobName>("--en--"_s)
-#define JAPANESE_NAME stringish<MobName>("--ja--"_s)
+#define ENGLISH_NAME stringish<NpcName>("--en--"_s)
+#define JAPANESE_NAME stringish<NpcName>("--ja--"_s)
 #define MOB_THIS_MAP stringish<MapName>("this"_s)
 
 struct mob_skill
@@ -60,7 +60,7 @@ struct mob_skill
 
 struct mob_db_
 {
-    MobName name, jname;
+    NpcName name, jname;
     int lv;
     int max_hp, max_sp;
     int base_exp, job_exp;
@@ -88,23 +88,23 @@ struct mob_db_
 };
 struct mob_db_& get_mob_db(Species);
 
-Species mobdb_searchname(MobName str);
+Species mobdb_searchname(NpcName str);
 Species mobdb_checkid(Species id);
 BlockId mob_once_spawn(dumb_ptr<map_session_data> sd,
         MapName mapname, int x, int y,
-        MobName mobname, Species class_, int amount,
+        NpcName mobname, Species class_, int amount,
         NpcEvent event);
 BlockId mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         MapName mapname, int x0, int y0, int x1, int y1,
-        MobName mobname, Species class_, int amount,
+        NpcName mobname, Species class_, int amount,
         NpcEvent event);
 
-int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist);
-int mob_stop_walking(dumb_ptr<mob_data> md, int type);
-int mob_stopattack(dumb_ptr<mob_data>);
+int mob_target(dumb_ptr<npc_data> md, dumb_ptr<block_list> bl, int dist);
+int mob_stop_walking(dumb_ptr<npc_data> md, int type);
+int mob_stopattack(dumb_ptr<npc_data>);
 int mob_spawn(BlockId);
-int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
-int mob_heal(dumb_ptr<mob_data>, int);
+int mob_damage(dumb_ptr<block_list>, dumb_ptr<npc_data>, int, int);
+int mob_heal(dumb_ptr<npc_data>, int);
 short mob_get_hair(Species);
 short mob_get_hair_color(Species);
 short mob_get_weapon(Species);
@@ -119,22 +119,22 @@ bool mob_readdb(ZString filename);
 bool mob_readskilldb(ZString filename);
 void do_init_mob2(void);
 
-int mob_delete(dumb_ptr<mob_data> md);
-int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type);
+int mob_delete(dumb_ptr<npc_data> md);
+int mob_catch_delete(dumb_ptr<npc_data> md, BeingRemoveWhy type);
 void mob_timer_delete(TimerData *, tick_t, BlockId);
 
-int mob_deleteslave(dumb_ptr<mob_data> md);
+int mob_deleteslave(dumb_ptr<npc_data> md);
 
-int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
+int mob_counttargeted(dumb_ptr<npc_data> md, dumb_ptr<block_list> src,
         ATK target_lv);
 
-int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m, int x, int y, BeingRemoveWhy type);
+int mob_warp(dumb_ptr<npc_data> md, Option<Borrowed<map_local>> m, int x, int y, BeingRemoveWhy type);
 
-int mobskill_use(dumb_ptr<mob_data> md, tick_t tick, MobSkillCondition event);
-int mobskill_event(dumb_ptr<mob_data> md, BF flag);
+int mobskill_use(dumb_ptr<npc_data> md, tick_t tick, MobSkillCondition event);
+int mobskill_event(dumb_ptr<npc_data> md, BF flag);
 void mobskill_castend_id(TimerData *tid, tick_t tick, BlockId id);
 void mobskill_castend_pos(TimerData *tid, tick_t tick, BlockId id);
-int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
+int mob_summonslave(dumb_ptr<npc_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
 } // namespace map

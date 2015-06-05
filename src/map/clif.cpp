@@ -769,7 +769,7 @@ void clif_set007b(dumb_ptr<map_session_data> sd, Buffer& buf)
  *------------------------------------------
  */
 static
-void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_mob0078(dumb_ptr<npc_data> md, Buffer& buf)
 {
     nullpo_retv(md);
     int max_hp = md->stats[mob_stat::MAX_HP];
@@ -781,7 +781,7 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_78.opt1 = md->opt1;
     fixed_78.opt2 = md->opt2;
     fixed_78.option = md->option;
-    fixed_78.species = md->mob_class;
+    fixed_78.species = md->npc_class;
     // snip: stuff do do with disguise as a PC
     fixed_78.pos.x = md->bl_x;
     fixed_78.pos.y = md->bl_y;
@@ -801,7 +801,7 @@ void clif_mob0078(dumb_ptr<mob_data> md, Buffer& buf)
  *------------------------------------------
  */
 static
-void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
+void clif_mob007b(dumb_ptr<npc_data> md, Buffer& buf)
 {
     nullpo_retv(md);
     int max_hp = md->stats[mob_stat::MAX_HP];
@@ -813,7 +813,7 @@ void clif_mob007b(dumb_ptr<mob_data> md, Buffer& buf)
     fixed_7b.opt1 = md->opt1;
     fixed_7b.opt2 = md->opt2;
     fixed_7b.option = md->option;
-    fixed_7b.mob_class = md->mob_class;
+    fixed_7b.npc_class = md->npc_class;
     // snip: stuff for monsters disguised as PCs
     fixed_7b.tick = gettick();
 
@@ -850,7 +850,7 @@ void clif_0225_being_move3_sub(dumb_ptr<block_list> bl, const Buffer& buf)
 }
 
 static
-int clif_0225_being_move3(dumb_ptr<mob_data> md)
+int clif_0225_being_move3(dumb_ptr<npc_data> md)
 {
     Packet_Head<0x0225> head_225;
     std::vector<Packet_Repeat<0x0225>> repeat_225;
@@ -1019,7 +1019,7 @@ int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, BlockId fake_n
  *
  *------------------------------------------
  */
-int clif_spawnmob(dumb_ptr<mob_data> md)
+int clif_spawnmob(dumb_ptr<npc_data> md)
 {
     nullpo_retz(md);
 
@@ -1030,7 +1030,7 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
         fixed_7c.opt1 = md->opt1;
         fixed_7c.opt2 = md->opt2;
         fixed_7c.option = md->option;
-        fixed_7c.species = md->mob_class;
+        fixed_7c.species = md->npc_class;
         fixed_7c.pos.x = md->bl_x;
         fixed_7c.pos.y = md->bl_y;
         Buffer buf = create_fpacket<0x007c, 41>(fixed_7c);
@@ -2393,7 +2393,7 @@ void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
  * 移動停止
  *------------------------------------------
  */
-int clif_movemob(dumb_ptr<mob_data> md)
+int clif_movemob(dumb_ptr<npc_data> md)
 {
     nullpo_retz(md);
 
@@ -2409,7 +2409,7 @@ int clif_movemob(dumb_ptr<mob_data> md)
  * モンスターの位置修正
  *------------------------------------------
  */
-int clif_fixmobpos(dumb_ptr<mob_data> md)
+int clif_fixmobpos(dumb_ptr<npc_data> md)
 {
     nullpo_retz(md);
 
@@ -2490,7 +2490,7 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
  *------------------------------------------
  */
 static
-void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
+void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> md)
 {
     nullpo_retv(sd);
     nullpo_retv(md);
@@ -2546,8 +2546,6 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
         clif_getareachar_pc(sd, bl->is_player());
     if (bl->bl_types.npc)
         clif_getareachar_npc(sd, bl->is_npc());
-    if (bl->bl_types.mob)
-        clif_getareachar_mob(sd, bl->is_mob());
     if (bl->bl_types.item)
         clif_getareachar_item(sd, bl->is_item());
     //if (bl->bl_types.spell)
@@ -2581,10 +2579,6 @@ void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
     {
         clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->sess);
     }
-    if (bl->bl_types.mob)
-    {
-        clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->sess);
-    }
     if (bl->bl_types.item)
     {
         clif_clearflooritem(bl->is_item(), sd->sess);
@@ -2615,10 +2609,6 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
     {
         clif_getareachar_npc(sd, bl->is_npc());
     }
-    if (bl->bl_types.mob)
-    {
-        clif_getareachar_mob(sd, bl->is_mob());
-    }
     if (bl->bl_types.item)
     {
         clif_getareachar_item(sd, bl->is_item());
@@ -2629,7 +2619,7 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
  *
  *------------------------------------------
  */
-void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
+void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<npc_data> md)
 {
     dumb_ptr<map_session_data> sd;
 
@@ -2647,7 +2637,7 @@ void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
  *
  *------------------------------------------
  */
-void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
+void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<npc_data> md)
 {
     dumb_ptr<map_session_data> sd;
 
@@ -3677,15 +3667,6 @@ RecvResult clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> 
         // [fate] elim hashed out/invisible names for the client
         auto it = std::find(name.begin(), name.end(), '#');
         fixed_95.char_name = stringish<CharName>(name.xislice_h(it));
-        send_fpacket<0x0095, 30>(s, fixed_95);
-    }
-    if (bl->bl_types.mob)
-    {
-        dumb_ptr<mob_data> md = bl->is_mob();
-
-        nullpo_retr(rv, md);
-
-        fixed_95.char_name = stringish<CharName>(md->name);
         send_fpacket<0x0095, 30>(s, fixed_95);
     }
     //if (bl->bl_types.spell)

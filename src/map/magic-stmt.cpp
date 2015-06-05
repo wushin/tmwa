@@ -448,14 +448,14 @@ void entity_warp(dumb_ptr<block_list> target, Borrowed<map_local> destm, int des
         // Warp part #2: now notify the client
         clif_changemap(character, map_name,
                 character->bl_x, character->bl_y);
+        return;
     }
-    if (target->bl_types.mob)
-    {
+    if (target->bl_types.npc)
         target->bl_x = destx;
         target->bl_y = desty;
         target->bl_m = destm;
-        clif_fixmobpos(target->is_mob());
-    }
+        clif_fixmobpos(target->is_npc());
+        return;
 }
 
 static
@@ -489,9 +489,9 @@ int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
-    if (subject->bl_types.mob)
+    if (subject->bl_types.npc)
     {
-        dumb_ptr<mob_data> mob = subject->is_mob();
+        dumb_ptr<npc_data> mob = subject->is_npc();
 
         if (bool(mob->mode & MobMode::SUMMONED))
             mob_catch_delete(mob, BeingRemoveWhy::WARPED);
@@ -631,10 +631,10 @@ int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
     dumb_ptr<block_list> victim = ARGENTITY(2);
     int mode = ARGINT(1);
     dumb_ptr<block_list> target = ARGENTITY(0);
-    dumb_ptr<mob_data> other;
+    dumb_ptr<npc_data> other;
 
-    if (target->bl_types.mob)
-        other = target->is_mob();
+    if (target->bl_types.npc)
+        other = target->is_npc();
     else
         return 0;
 
@@ -682,12 +682,12 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
         magic_random_location(&loc, area);
 
         BlockId mob_id;
-        dumb_ptr<mob_data> mob;
+        dumb_ptr<npc_data> mob;
 
         mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
                 monster_id, 1, NpcEvent());
 
-        mob = map_id_is_mob(mob_id);
+        mob = map_id_is_npc(mob_id);
 
         if (mob)
         {
@@ -790,9 +790,9 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
     if (caster->bl_types.pc)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
-        if (target->bl_types.mob)
+        if (target->bl_types.npc)
         {
-            dumb_ptr<mob_data> mob = target->is_mob();
+            dumb_ptr<npc_data> mob = target->is_npc();
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
                     mob->bl_id, mob->mob_class, damage_caused,
@@ -1075,14 +1075,15 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
     {
 
         case FOREACH_FILTER::ENTITY:
-            if (target->bl_types.mob)
+            if (target->bl_types.npc)
                 break;
             if (target->bl_types.pc && target->bl_m->flag.get(MapFlag::PVP))
                 break;
             return;
         case FOREACH_FILTER::TARGET:
-            if (target->bl_types.mob)
-                break;
+            if (target->bl_types.npc)
+                if (target->is_npc()->npc_subtype == NpcSubtype::MOB)
+                    break;
             if (target->bl_types.pc && target->bl_m->flag.get(MapFlag::PVP))
                 break;
             return;
@@ -1115,11 +1116,14 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             }
             return;
         case FOREACH_FILTER::MOB:
-            if (target->bl_types.mob)
-                break;
+            if (target->bl_types.npc)
+                if (target->is_npc()->npc_subtype == NpcSubtype::MOB)
+                    break;
             return;
         case FOREACH_FILTER::NPC:
             if (target->bl_types.npc)
+                if (target->is_npc()->npc_subtype != NpcSubtype::MOB)
+                    break;
                 break;
             return;
         default:

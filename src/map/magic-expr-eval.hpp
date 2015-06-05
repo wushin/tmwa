@@ -46,7 +46,6 @@ namespace magic
 
 #define ARGPC(x)  (ARGENTITY(x)->is_player())
 #define ARGNPC(x)  (ARGENTITY(x)->is_npc())
-#define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
 #define ARG_MAY_BE_AREA(x) (args[x].is<ValArea>() || args[x].is<ValArea>())
 } // namespace magic

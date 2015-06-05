@@ -253,11 +253,11 @@ namespace npc
                 }
                 EXPECT_SPAN(p->key_span, 1,17, 1,23);
                 EXPECT_SPAN(p->name.span, 1,25, 1,40);
-                EXPECT_EQ(p->name.data, stringish<MobName>("Feeping Creature"_s));
+                EXPECT_EQ(p->name.data, stringish<NpcName>("Feeping Creature"_s));
                 if (!third)
                 {
-                    EXPECT_SPAN(p->mob_class.span, 1,42, 1,42);
-                    EXPECT_EQ(p->mob_class.data, wrap<Species>(5));
+                    EXPECT_SPAN(p->npc_class.span, 1,42, 1,42);
+                    EXPECT_EQ(p->npc_class.data, wrap<Species>(5));
                     EXPECT_SPAN(p->num.span, 1,44, 1,44);
                     EXPECT_EQ(p->num.data, 6);
                     EXPECT_SPAN(p->delay1.span, 1,46, 1,49);
@@ -267,8 +267,8 @@ namespace npc
                 }
                 else
                 {
-                    EXPECT_SPAN(p->mob_class.span, 1,42, 1,44);
-                    EXPECT_EQ(p->mob_class.data, wrap<Species>(506));
+                    EXPECT_SPAN(p->npc_class.span, 1,42, 1,44);
+                    EXPECT_EQ(p->npc_class.data, wrap<Species>(506));
                     EXPECT_SPAN(p->num.span, 1,46, 1,54);
                     EXPECT_EQ(p->num.data, 700008000);
                     EXPECT_SPAN(p->delay1.span, 1,55, 1,55);
