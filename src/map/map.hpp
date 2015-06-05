@@ -77,12 +77,12 @@ struct block_list
     short bl_x, bl_y;
     struct
     {
-        bool null = false;
-        bool pc = false;
-        bool npc = false;
-        bool mob = false;
-        bool item = false;
-        bool spell = false;
+        unsigned null:1;
+        unsigned pc:1;
+        unsigned npc:1;
+        unsigned mob:1;
+        unsigned item:1;
+        unsigned spell:1;
     } bl_types;
 
     // This deletes the copy-ctor also

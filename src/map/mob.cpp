@@ -143,7 +143,7 @@ void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, Species mob_class
     md->bl_next = nullptr;
     md->n = 0;
     md->mob_class = mob_class;
-    md->bl_types.mob = true;
+    md->bl_types.mob = 1;
     md->bl_id = npc_get_new_npc_id();
 
     really_memzero_this(&md->state);
@@ -3210,7 +3210,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
         return 0;
 
     // 射程と障害物チェック
-    bl.bl_types.null = true;
+    bl.bl_types.null = 1;
     bl.bl_m = md->bl_m;
     bl.bl_x = skill_x;
     bl.bl_y = skill_y;

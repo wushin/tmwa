@@ -518,7 +518,7 @@ int pc_setnewpc(dumb_ptr<map_session_data> sd, AccountId account_id, CharId char
     sd->sex = sex;
     sd->state.auth = 0;
     sd->state.connect_new = 0;
-    sd->bl_types.pc = true;
+    sd->bl_types.pc = 1;
     sd->canact_tick = sd->canmove_tick = gettick();
     sd->canlog_tick = gettick();
     sd->state.waitingdisconnect = 0;
@@ -648,7 +648,7 @@ int pc_authok(AccountId id, int login_id2,
     tick_t tick = gettick();
 
     sd = map_id2sd(account_to_block(id));
-    sd->bl_types.pc = true;
+    sd->bl_types.pc = 1;
     if (sd == nullptr)
         return 1;
 

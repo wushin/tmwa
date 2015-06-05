@@ -695,7 +695,7 @@ BlockId map_addflooritem_any(Item *item_data, int amount,
         return BlockId();
 
     fitem.new_();
-    fitem->bl_types.item = true;
+    fitem->bl_types.item = 1;
     fitem->bl_prev = fitem->bl_next = nullptr;
     fitem->bl_m = m;
     fitem->bl_x = xy.first;

@@ -452,7 +452,7 @@ dumb_ptr<invocation> spell_instantiate(const effect_set_t *effect_set, dumb_ptr<
 
     caster = map_id2bl(retval->caster);    // must still exist
     retval->bl_id = map_addobject(retval);
-    retval->bl_types.spell = true;
+    retval->bl_types.spell = 1;
     retval->bl_m = caster->bl_m;
     retval->bl_x = caster->bl_x;
     retval->bl_y = caster->bl_y;
