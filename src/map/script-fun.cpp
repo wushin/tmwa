@@ -1546,6 +1546,42 @@ void builtin_getexp(ScriptState *st)
 
 }
 
+static
+void builtin_summon(ScriptState *st)
+{
+    Species mob_class;
+    int amount, x, y, i;
+    NpcEvent event;
+    dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
+    tick_t tick = gettick();
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARG(3))));
+    mob_class = wrap<Species>(conv_num(st, &AARG(4)));
+    amount = conv_num(st, &AARG(5));
+    interval_t monster_lifetime = static_cast<interval_t>(conv_num(st, &AARG(6)));
+    if (HARG(7))
+        extract(ZString(conv_str(st, &AARG(7))), &event);
+
+    for (i = 0; i < amount; i++)
+    {
+        BlockId id = mob_once_spawn(sd, mapname, x, y, str, mob_class, 1, event);
+        dumb_ptr<mob_data> md = map_id_is_mob(id);
+        if (md)
+        {
+            md->master_id = sd->bl_id;
+            md->master_dist = 6;
+            md->state.special_mob_ai = 1;
+            md->mode = get_mob_db(md->mob_class).mode | MobMode::AGGRESSIVE | MobMode::SUMMONED | MobMode::TURNS_AGAINST_BAD_MASTER;
+            md->deletetimer = Timer(tick + monster_lifetime,
+                    std::bind(mob_timer_delete, ph::_1, ph::_2,
+                        id));
+            clif_misceffect(md, 344);
+        }
+    }
+}
+
 /*==========================================
  * モンスター発生
  *------------------------------------------
@@ -3387,6 +3423,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(gettime, "i"_s, 'i'),
     BUILTIN(openstorage, ""_s, '\0'),
     BUILTIN(getexp, "ii"_s, '\0'),
+    BUILTIN(summon, "Mxysmii?"_s, '\0'),
     BUILTIN(monster, "Mxysmi?"_s, '\0'),
     BUILTIN(areamonster, "Mxyxysmi?"_s, '\0'),
     BUILTIN(killmonster, "ME"_s, '\0'),
