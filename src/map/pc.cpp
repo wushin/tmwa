@@ -54,7 +54,6 @@
 #include "globals.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "magic-stmt.hpp"
 #include "map.hpp"
 #include "map_conf.hpp"
 #include "npc.hpp"
@@ -3279,7 +3278,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_calcstatus(sd, 0);
     // [Fate] Reset magic
     sd->cast_tick = gettick();
-    magic::magic_stop_completely(sd);
+    //magic_stop_completely(sd);
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
@@ -4977,7 +4976,7 @@ void do_init_pc(void)
 
 void pc_cleanup(dumb_ptr<map_session_data> sd)
 {
-    magic::magic_stop_completely(sd);
+    //magic_stop_completely(sd);
 }
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
