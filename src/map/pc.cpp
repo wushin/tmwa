@@ -1505,18 +1505,14 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
                 sd->base_atk += val;
             break;
 #endif
-#if 0
         case SP::MATK1:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk1 += val;
             break;
-#endif
-#if 0
         case SP::MATK2:
             if (!sd->state.lr_flag_is_arrow_2)
                 sd->matk2 += val;
             break;
-#endif
 #if 0
         case SP::DEF1:
             if (!sd->state.lr_flag_is_arrow_2)
@@ -3438,6 +3434,12 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             break;
         case SP::MAXSP:
             val = sd->status.max_sp;
+            break;
+        case SP::MATK1:
+            val = sd->matk1;
+            break;
+        case SP::MATK2:
+            val = sd->matk2;
             break;
         case SP::STR:
         case SP::AGI:
