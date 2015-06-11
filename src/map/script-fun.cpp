@@ -2994,18 +2994,6 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
-  * casttime
-  *------------------------------------------
-  */
-static
-void builtin_casttime(ScriptState *st)
-{
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
-    sd->cast_tick = gettick() + tick;
-}
-
-/*==========================================
   * register cmd
   *------------------------------------------
   */
