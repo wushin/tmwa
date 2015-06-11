@@ -206,10 +206,12 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     if (nd)
     {
         PRINTF("Cast:  %s\n"_fmt, spell_name);
-        PRINTF("NPC:  %s\n"_fmt, nd->name);
+        PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
         PRINTF("Params:  %s\n"_fmt, spell_params);
         caster->npc_id = nd->bl_id;
-        map_addnpc(caster->bl_m, nd);
+        dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
+        if (!map_bl)
+            map_addnpc(caster->bl_m, nd);
         //argrec_t arg[1] =
         //{
         //    {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
