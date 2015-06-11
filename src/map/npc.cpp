@@ -149,7 +149,7 @@ dumb_ptr<npc_data> npc_name2id(NpcName name)
  * NPCを名前で探す
  *------------------------------------------
  */
-NpcEvent spell_name2id(RString name)
+dumb_ptr<npc_data> spell_name2id(RString name)
 {
     return spells_by_name.get(name);
 }
@@ -201,14 +201,21 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     NpcName spell_name = stringish<NpcName>(pair.first);
     RString spell_params = pair.second;
 
-    NpcEvent event = spell_name2id(spell_name);
+    dumb_ptr<npc_data> nd = npc_name2id(spell_name);
 
-    if (event)
+    if (nd)
     {
         PRINTF("Cast:  %s\n"_fmt, spell_name);
-        PRINTF("event:  %s\n"_fmt, event);
+        PRINTF("NPC:  %s\n"_fmt, nd->name);
         PRINTF("Params:  %s\n"_fmt, spell_params);
-        npc_event(caster, event, 0);
+        caster->npc_id = nd->bl_id;
+        map_addnpc(caster->bl_m, nd);
+        //argrec_t arg[1] =
+        //{
+        //    {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
+        //};
+        //caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
+        caster->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id);
         return 1;
     }
     return 0;

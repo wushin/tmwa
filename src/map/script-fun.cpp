@@ -266,7 +266,6 @@ void builtin_menu(ScriptState *st)
             buf += choice_str;
             buf += ':';
         }
-
         clif_scriptmenu(script_rid2sd(st), st->oid, AString(buf));
     }
     else
@@ -2924,11 +2923,7 @@ void builtin_registercmd(ScriptState *st)
 {
     dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
     RString evoke = conv_str(st, &AARG(0));
-    ZString event_ = conv_str(st, &AARG(1));
-    NpcEvent event;
-    extract(event_, &event);
-
-    spells_by_name.put(evoke, event);
+    spells_by_name.put(evoke, nd);
 }
 
 /*==========================================
@@ -3413,7 +3408,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "s"_s, '\0'),
     BUILTIN(casttime, "i"_s, '\0'),
-    BUILTIN(registercmd, "sE"_s, '\0'),
+    BUILTIN(registercmd, "s"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytEi"_s, '\0'),
