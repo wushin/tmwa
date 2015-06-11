@@ -189,13 +189,6 @@ std::pair<XString, XString> magic_tokenise(XString src)
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
-    if (pc_isdead(caster))
-        return 0;
-    if (bool(caster->status.option & Opt0::HIDE))
-        return 0;
-    if (caster->cast_tick > gettick())
-        return 0;
-
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
     NpcName spell_name = stringish<NpcName>(pair.first);
@@ -212,12 +205,11 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
         dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
         if (!map_bl)
             map_addnpc(caster->bl_m, nd);
-        //argrec_t arg[1] =
-        //{
-        //    {"@target_id"_s, static_cast<int32_t>(unwrap<BlockId>(bl->bl_id))},
-        //};
-        //caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
-        caster->npc_pos = run_script(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id);
+        argrec_t arg[1] =
+        {
+            {"@args$"_s, spell_params},
+        };
+        caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
         return 1;
     }
     return 0;
