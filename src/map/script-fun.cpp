@@ -2909,9 +2909,15 @@ void builtin_npctalk(ScriptState *st)
 static
 void builtin_registercmd(ScriptState *st)
 {
-    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
     RString evoke = conv_str(st, &AARG(0));
-    spells_by_name.put(evoke, nd);
+    NpcName npcname = stringish<NpcName>(conv_str(st, &AARG(1)));
+    ZString event_ = conv_str(st, &AARG(1));
+    NpcEvent event;
+    extract(event_, &event);
+    if (event.label)
+        spells_by_events.put(evoke, event);
+    else
+        spells_by_name.put(evoke, npcname);
 }
 
 /*==========================================
@@ -3395,7 +3401,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "s"_s, '\0'),
-    BUILTIN(registercmd, "s"_s, '\0'),
+    BUILTIN(registercmd, "ss"_s, '\0'),
     BUILTIN(getlook, "i"_s, 'i'),
     BUILTIN(getsavepoint, "i"_s, '.'),
     BUILTIN(areatimer, "MxyxytEi"_s, '\0'),
