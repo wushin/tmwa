@@ -146,12 +146,21 @@ dumb_ptr<npc_data> npc_name2id(NpcName name)
 }
 
 /*==========================================
- * NPCを名前で探す
+ * NPC Spells
  *------------------------------------------
  */
-dumb_ptr<npc_data> spell_name2id(RString name)
+NpcName spell_name2id(RString name)
 {
     return spells_by_name.get(name);
+}
+
+/*==========================================
+ * NPC Spells Events
+ *------------------------------------------
+ */
+NpcEvent spell_event2id(RString name)
+{
+    return spells_by_events.get(name);
 }
 
 /*==========================================
@@ -191,14 +200,16 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
-    NpcName spell_name = stringish<NpcName>(pair.first);
+    NpcName spell_name = spell_name2id(pair.first);
+    NpcEvent spell_event = spell_event2id(pair.first);
+    PRINTF("Cast: %s\n"_fmt, RString(pair.first));
+
     RString spell_params = pair.second;
 
     dumb_ptr<npc_data> nd = npc_name2id(spell_name);
 
     if (nd)
     {
-        PRINTF("Cast:  %s\n"_fmt, spell_name);
         PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
         PRINTF("Params:  %s\n"_fmt, spell_params);
         caster->npc_id = nd->bl_id;
@@ -210,6 +221,22 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
             {"@args$"_s, spell_params},
         };
         caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
+        return 1;
+    }
+    if (spell_event.label)
+    {
+        dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
+        PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
+        PRINTF("Params:  %s\n"_fmt, spell_params);
+        caster->npc_id = nd->bl_id;
+        dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
+        if (!map_bl)
+            map_addnpc(caster->bl_m, nd);
+        argrec_t arg[1] =
+        {
+            {"@args$"_s, spell_params},
+        };
+        caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
         return 1;
     }
     return 0;
