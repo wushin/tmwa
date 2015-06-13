@@ -192,34 +192,64 @@ std::pair<XString, XString> magic_tokenise(XString src)
     }
 }
 
+// This differs from extract() in that it does not consume extra spaces.
+MString magic_split(XString raw, char prefix, MString args)
+{
+    XString::iterator it = std::find(raw.begin(), raw.end(), prefix);
+    XString word = raw.xislice_h(it);
+    while (*it == prefix && it != raw.end())
+        ++it;
+    XString rest = raw.xislice_t(it);
+    if (word.size() > 0 && word != XString(" "_s))
+    {
+        args += word;
+        args += ","_s;
+    }
+    if (it == raw.end())
+    {
+        args.pop_back();
+        return args;
+    }
+    return magic_split(rest, prefix, args);
+}
+
 /*==========================================
  * NPC Spell
  *------------------------------------------
  */
 int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
+    MString args;
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
     NpcName spell_name = spell_name2id(pair.first);
     NpcEvent spell_event = spell_event2id(pair.first);
     PRINTF("Cast: %s\n"_fmt, RString(pair.first));
+    PRINTF("Params: %s\n"_fmt, RString(pair.second));
 
-    RString spell_params = pair.second;
-
+    if (pair.second.size() > 0)
+    {
+        char prefix = ' ';
+        if (pair.second.front() == '"')
+        {
+            prefix = pair.second.front();
+        }
+        args = magic_split(pair.second, prefix, args);
+    }
     dumb_ptr<npc_data> nd = npc_name2id(spell_name);
-
+    argrec_t arg[1] =
+    {
+        {"@args$"_s, RString(pair.second)},
+    };
+    PRINTF("Args %s"_fmt, RString(args));
+/*
     if (nd)
     {
         PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  %s\n"_fmt, spell_params);
         caster->npc_id = nd->bl_id;
         dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
         if (!map_bl)
             map_addnpc(caster->bl_m, nd);
-        argrec_t arg[1] =
-        {
-            {"@args$"_s, spell_params},
-        };
         caster->npc_pos = run_script_l(ScriptPointer(borrow(*nd->is_script()->scr.script), 0), caster->bl_id, nd->bl_id, arg);
         return 1;
     }
@@ -227,18 +257,13 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     {
         dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
         PRINTF("NPC:  %s %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  %s\n"_fmt, spell_params);
         caster->npc_id = nd->bl_id;
         dumb_ptr<block_list> map_bl = map_id2bl(nd->bl_id);
         if (!map_bl)
             map_addnpc(caster->bl_m, nd);
-        argrec_t arg[1] =
-        {
-            {"@args$"_s, spell_params},
-        };
         caster->npc_pos = npc_event_do_l(spell_event, caster->bl_id, arg);
         return 1;
-    }
+    }*/
     return 0;
 }
 
