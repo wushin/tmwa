@@ -92,7 +92,6 @@ void npc_delsrcfile(XString name)
     }
 }
 
-static
 void register_npc_name(dumb_ptr<npc_data> nd)
 {
     earray<LString, NpcSubtype, NpcSubtype::COUNT> types //=
