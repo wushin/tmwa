@@ -50,6 +50,7 @@
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
+#include "npc-parse.hpp"
 #include "party.hpp"
 #include "pc.hpp"
 #include "script-call-internal.hpp"
@@ -610,6 +611,142 @@ void builtin_foreach(ScriptState *st)
             x0, y0,
             x1, y1,
             block_type);
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static
+void builtin_npctemp_sub(TimerData *, tick_t, BL block_type, NpcEvent event, BlockId caster,
+        P<map_local> m, int x0, int y0, int x1, int y1)
+{
+    map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, caster),
+            m,
+            x0, y0,
+            x1, y1,
+            block_type);
+}
+/*========================================
+ * Destructs a temp NPC
+ *----------------------------------------
+ */
+static
+void builtin_tempnpc_destuct(TimerData *, tick_t, dumb_ptr<npc_data_script> nd)
+{
+    // Destruct
+    dumb_ptr<npc_data_script> nd_null;
+    npc_enable(nd->name, 0);
+    npcs_by_name.put(nd->name, nd_null);
+    npc_delete(nd);
+}
+/*========================================
+ * Creates a temp NPC
+ *----------------------------------------
+ */
+static
+void builtin_tempnpc(ScriptState *st)
+{
+    int x, y, x0, y0, x1, y1, distance, repeat, bl_num;
+
+    dumb_ptr<block_list> bl = map_id2bl(st->oid);
+    dumb_ptr<npc_data_script> old_nd = bl->is_npc()->is_script();
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<npc_data_script> nd;
+    nd.new_();
+    //imxyiiiEs
+    bl_num = conv_num(st, &AARG(0));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
+    x = conv_num(st, &AARG(2));
+    y = conv_num(st, &AARG(3));
+    distance = conv_num(st, &AARG(4));
+    repeat = conv_num(st, &AARG(5));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(6)));
+    ZString event_ = conv_str(st, &AARG(7));
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(8))));
+    BL block_type;
+    NpcEvent event;
+    extract(event_, &event);
+
+    P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
+    x0 = (x - distance);
+    y0 = (y - distance);
+    x1 = (x + distance);
+    y1 = (y + distance);
+
+    nd->bl_prev = nd->bl_next = nullptr;
+    nd->scr.event_needs_map = false;
+
+    // PlayerName::SpellName
+    PRINTF("Npc: %s\n"_fmt, npc);
+    nd->name = npc;
+
+    // Dynamically set location
+    nd->bl_m = m;
+    nd->bl_x = x;
+    nd->bl_y = y;
+    nd->bl_id = npc_get_new_npc_id();
+    nd->dir = DIR::S;
+    nd->flag = 0;
+    nd->sit = DamageType::STAND;
+    nd->npc_class = INVISIBLE_CLASS;
+    nd->speed = 200_ms;
+    nd->option = Opt0::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
+
+    nd->bl_type = BL::NPC;
+    nd->npc_subtype = NpcSubtype::SCRIPT;
+
+    nd->n = map_addnpc(nd->bl_m, nd);
+
+    map_addblock(nd);
+
+    clif_spawnnpc(nd);
+
+    register_npc_name(nd);
+
+    switch (bl_num)
+    {
+        case 0:
+            block_type = BL::PC;
+            break;
+        case 1:
+            block_type = BL::NPC;
+            break;
+        case 2:
+            block_type = BL::MOB;
+            break;
+        default:
+            return;
+    }
+
+    for (int a = 0; a <= repeat; ++a)
+    {
+        int i;
+        for (i = 0; i < MAX_EVENTTIMER; i++)
+            if (!nd->eventtimer[i])
+                break;
+
+        if (i < MAX_EVENTTIMER)
+        {
+            if (a != repeat)
+            {
+                nd->eventtimer[i] = Timer(gettick() + tick,
+                        std::bind(builtin_npctemp_sub, ph::_1, ph::_2,
+                            block_type, event, sd->bl_id, m, x0, y0, x1, y1));
+                tick += tick;
+            }
+            else
+            {
+                nd->eventtimer[i] = Timer(gettick() + tick,
+                        std::bind(builtin_tempnpc_destuct, ph::_1, ph::_2,
+                            nd));
+            }
+        }
+    }
+    return;
 }
 
 /*==========================================
@@ -3557,6 +3694,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
+    BUILTIN(tempnpc, "imxyiiiEs"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),
