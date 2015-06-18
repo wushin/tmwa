@@ -304,6 +304,11 @@ void npc_event_do_sub(NpcEvent key, struct event_data *ev,
 
     if (name == key)
     {
+        if (ev->child != BlockId())
+        {
+            rid = ev->child; // run as another npc
+        }
+
         run_script_l(ScriptPointer(borrow(*ev->nd->scr.script), ev->pos), rid, ev->nd->bl_id,
                 argv);
         (*c)++;
@@ -486,7 +491,14 @@ void npc_timerevent(TimerData *, tick_t tick, BlockId id, interval_t data)
                     id, next));
     }
 
-    run_script(ScriptPointer(borrow(*nd->scr.script), te->pos), BlockId(), nd->bl_id);
+    if (te->parent != BlockId())
+    {
+        nd = map_id2bl(te->parent)->is_npc()->is_script();
+    }
+    else
+        id = BlockId();
+
+    run_script(ScriptPointer(borrow(*nd->scr.script), te->pos), id, nd->bl_id);
 }
 
 /// Start (or resume) counting ticks to the next npc_timerevent.

@@ -304,6 +304,7 @@ struct npc_timerevent_list
 {
     interval_t timer;
     int pos;
+    BlockId parent;
 };
 struct npc_label_list
 {
