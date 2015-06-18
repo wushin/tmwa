@@ -58,6 +58,7 @@
 #include "script-persist.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
+#include "npc-internal.hpp"
 
 #include "../poison.hpp"
 
@@ -612,29 +613,24 @@ void builtin_foreach(ScriptState *st)
             x1, y1,
             block_type);
 }
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_npctemp_sub(TimerData *, tick_t, BL block_type, NpcEvent event, BlockId caster,
-        P<map_local> m, int x0, int y0, int x1, int y1)
-{
-    map_foreachinarea(std::bind(builtin_foreach_sub, ph::_1, event, caster),
-            m,
-            x0, y0,
-            x1, y1,
-            block_type);
-}
 /*========================================
  * Destructs a temp NPC
  *----------------------------------------
  */
 static
-void builtin_tempnpc_destuct(TimerData *, tick_t, dumb_ptr<npc_data_script> nd)
+void builtin_destroypuppet(ScriptState *st)
 {
-    // Destruct
+    BlockId id;
+    if (HARG(0))
+        id = wrap<BlockId>(conv_num(st, &AARG(0)));
+    else
+        id = st->oid;
+
+    dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
+    if(!nd)
+        return;
+
+    // FIXME: detect if the npc is a puppet and refuse to destroy if not
     dumb_ptr<npc_data_script> nd_null;
     npc_enable(nd->name, 0);
     npcs_by_name.put(nd->name, nd_null);
@@ -644,40 +640,30 @@ void builtin_tempnpc_destuct(TimerData *, tick_t, dumb_ptr<npc_data_script> nd)
  * Creates a temp NPC
  *----------------------------------------
  */
+
 static
-void builtin_tempnpc(ScriptState *st)
+void builtin_puppet(ScriptState *st)
 {
-    int x, y, x0, y0, x1, y1, distance, repeat, bl_num;
+    int x, y;
 
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
     dumb_ptr<npc_data_script> old_nd = bl->is_npc()->is_script();
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
     dumb_ptr<npc_data_script> nd;
     nd.new_();
-    //imxyiiiEs
-    bl_num = conv_num(st, &AARG(0));
-    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(1))));
-    x = conv_num(st, &AARG(2));
-    y = conv_num(st, &AARG(3));
-    distance = conv_num(st, &AARG(4));
-    repeat = conv_num(st, &AARG(5));
-    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(6)));
-    ZString event_ = conv_str(st, &AARG(7));
-    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(8))));
-    BL block_type;
-    NpcEvent event;
-    extract(event_, &event);
+
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARG(0))));
+    x = conv_num(st, &AARG(1));
+    y = conv_num(st, &AARG(2));
+    Species sprite = wrap<Species>(static_cast<uint16_t>(conv_num(st, &AARG(4))));
 
     P<map_local> m = TRY_UNWRAP(map_mapname2mapid(mapname), return);
-    x0 = (x - distance);
-    y0 = (y - distance);
-    x1 = (x + distance);
-    y1 = (y + distance);
 
     nd->bl_prev = nd->bl_next = nullptr;
     nd->scr.event_needs_map = false;
 
     // PlayerName::SpellName
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
     PRINTF("Npc: %s\n"_fmt, npc);
     nd->name = npc;
 
@@ -689,64 +675,72 @@ void builtin_tempnpc(ScriptState *st)
     nd->dir = DIR::S;
     nd->flag = 0;
     nd->sit = DamageType::STAND;
-    nd->npc_class = INVISIBLE_CLASS;
+    nd->npc_class = sprite;
     nd->speed = 200_ms;
     nd->option = Opt0::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
-
+    nd->scr.label_listv = old_nd->scr.label_listv;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
+    npc_script++;
 
     nd->n = map_addnpc(nd->bl_m, nd);
 
     map_addblock(nd);
-
     clif_spawnnpc(nd);
 
     register_npc_name(nd);
 
-    switch (bl_num)
+    for (npc_label_list& el : old_nd->scr.label_listv)
     {
-        case 0:
-            block_type = BL::PC;
-            break;
-        case 1:
-            block_type = BL::NPC;
-            break;
-        case 2:
-            block_type = BL::MOB;
-            break;
-        default:
-            return;
-    }
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
 
-    for (int a = 0; a <= repeat; ++a)
-    {
-        int i;
-        for (i = 0; i < MAX_EVENTTIMER; i++)
-            if (!nd->eventtimer[i])
-                break;
-
-        if (i < MAX_EVENTTIMER)
+        if (lname.startswith("On"_s))
         {
-            if (a != repeat)
-            {
-                nd->eventtimer[i] = Timer(gettick() + tick,
-                        std::bind(builtin_npctemp_sub, ph::_1, ph::_2,
-                            block_type, event, sd->bl_id, m, x0, y0, x1, y1));
-                tick += tick;
-            }
-            else
-            {
-                nd->eventtimer[i] = Timer(gettick() + tick,
-                        std::bind(builtin_tempnpc_destuct, ph::_1, ph::_2,
-                            nd));
-            }
+            struct event_data ev {};
+            ev.nd = old_nd;
+            ev.child = nd->bl_id;
+            ev.pos = pos;
+            NpcEvent buf;
+            buf.npc = nd->name;
+            buf.label = lname;
+            ev_db.insert(buf, ev);
         }
     }
-    return;
+
+    for (npc_label_list& el : old_nd->scr.label_listv)
+    {
+        int t_ = 0;
+        ScriptLabel lname = el.name;
+        int pos = el.pos;
+        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
+        {
+            interval_t t = static_cast<interval_t>(t_);
+
+            npc_timerevent_list tel {};
+            tel.timer = t;
+            tel.pos = pos;
+            tel.parent = old_nd->bl_id;
+
+            auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
+                    [](const npc_timerevent_list& l, const npc_timerevent_list& r)
+                    {
+                        return l.timer < r.timer;
+                    }
+            );
+            assert (it == nd->scr.timer_eventv.end() || it->timer != tel.timer);
+
+            nd->scr.timer_eventv.insert(it, std::move(tel));
+        }
+    }
+
+    nd->scr.timer = interval_t::zero();
+    nd->scr.next_event = nd->scr.timer_eventv.begin();
+
+    push_int<ScriptDataInt>(st->stack, unwrap<BlockId>(nd->bl_id));
 }
 
 /*==========================================
@@ -2369,6 +2363,7 @@ void builtin_attachrid(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, (map_id2sd(st->rid) != nullptr));
 }
 
+
 /*==========================================
  * RIDのデタッチ
  *------------------------------------------
@@ -3694,7 +3689,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(isdead, ""_s, 'i'),
     BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
-    BUILTIN(tempnpc, "imxyiiiEs"_s, '\0'),
+    BUILTIN(puppet, "mxysi"_s, 'i'),
+    BUILTIN(destroypuppet, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),

@@ -874,7 +874,8 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
 {
     struct script_stack stack;
     ScriptState st;
-    dumb_ptr<map_session_data> sd = map_id2sd(rid);
+    dumb_ptr<block_list> bl = map_id2bl(rid);
+    dumb_ptr<map_session_data> sd = bl? bl->is_player(): nullptr;
     P<const ScriptBuffer> rootscript = TRY_UNWRAP(sp.code, return -1);
     int i;
     if (sp.pos >> 24)
@@ -890,6 +891,10 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
+
+    if(!sd && rid)
+        st.oid = rid; // run script as another npc
+
     for (i = 0; i < args.size(); i++)
     {
         if (args[i].name.back() == '$')
