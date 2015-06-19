@@ -630,11 +630,13 @@ void builtin_destroy(ScriptState *st)
     if(!nd)
         return;
 
+    assert(nd->disposable == true);
     dumb_ptr<npc_data_script> nd_null;
     npc_enable(nd->name, 0);
     npcs_by_name.put(nd->name, nd_null);
     npc_delete(nd);
-    st->state = ScriptEndState::END;
+    if (!HARG(0))
+        st->state = ScriptEndState::END;
 }
 /*========================================
  * Creates a temp NPC
@@ -661,6 +663,7 @@ void builtin_puppet(ScriptState *st)
 
     nd->bl_prev = nd->bl_next = nullptr;
     nd->scr.event_needs_map = false;
+    nd->disposable = true; // allow to destroy
 
     // PlayerName::SpellName
     NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
