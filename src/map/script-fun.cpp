@@ -750,12 +750,34 @@ void builtin_puppet(ScriptState *st)
 static
 void builtin_set(ScriptState *st)
 {
+    BlockId id;
     dumb_ptr<block_list> bl = nullptr;
     if (auto *u = AARG(0).get_if<ScriptDataParam>())
     {
         SIR reg = u->reg;
-        bl = script_rid2sd(st)->is_player();
+        if(HARG(2))
+        {
+            struct script_data *sdata = &AARG(2);
+            get_val(st, sdata);
+            CharName name;
+            if (sdata->is<ScriptDataStr>())
+            {
+                name = stringish<CharName>(ZString(conv_str(st, sdata)));
+                if (name.to__actual())
+                    bl = map_nick2sd(name);
+            }
+            else
+            {
+                id = wrap<BlockId>(conv_num(st, sdata));
+                bl = map_id2bl(id);
+            }
+        }
 
+        else
+            bl = script_rid2sd(st)->is_player();
+
+        if (bl == nullptr)
+            return;
         int val = conv_num(st, &AARG(1));
         set_reg(bl, VariableCode::PARAM, reg, val);
         return;
@@ -771,7 +793,6 @@ void builtin_set(ScriptState *st)
     {
         if(HARG(2))
         {
-            BlockId id;
             struct script_data *sdata = &AARG(2);
             get_val(st, sdata);
             if(prefix == '.')
@@ -811,6 +832,8 @@ void builtin_set(ScriptState *st)
             else
                 bl = map_id2bl(st->rid)->is_player();
         }
+        if (bl == nullptr)
+            return;
     }
 
     if (postfix == '$')
@@ -2957,6 +2980,31 @@ void builtin_get(ScriptState *st)
 {
     BlockId id;
     dumb_ptr<block_list> bl = nullptr;
+    if (auto *u = AARG(0).get_if<ScriptDataParam>())
+    {
+        SIR reg = u->reg;
+        struct script_data *sdata = &AARG(1);
+        get_val(st, sdata);
+        CharName name;
+        if (sdata->is<ScriptDataStr>())
+        {
+            name = stringish<CharName>(ZString(conv_str(st, sdata)));
+            if (name.to__actual())
+                bl = map_nick2sd(name);
+        }
+        else
+        {
+            id = wrap<BlockId>(conv_num(st, sdata));
+            bl = map_id2bl(id);
+        }
+
+        if (bl == nullptr)
+            return;
+        int var = pc_readparam(bl->is_player(), reg.sp());
+        push_int<ScriptDataInt>(st->stack, var);
+        return;
+    }
+
     struct script_data *sdata = &AARG(1);
     get_val(st, sdata);
 
