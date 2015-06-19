@@ -473,6 +473,7 @@ bool npc_load_script_none(ast::script::ScriptBody& body, ast::npc::ScriptNone& s
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
 
+    id_db.put(nd->bl_id, nd); // fix to get the oid in OnInit
     register_npc_name(nd);
 
     for (auto& pair : scriptlabel_db)
