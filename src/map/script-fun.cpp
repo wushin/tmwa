@@ -618,7 +618,7 @@ void builtin_foreach(ScriptState *st)
  *----------------------------------------
  */
 static
-void builtin_destroypuppet(ScriptState *st)
+void builtin_destroy(ScriptState *st)
 {
     BlockId id;
     if (HARG(0))
@@ -630,11 +630,11 @@ void builtin_destroypuppet(ScriptState *st)
     if(!nd)
         return;
 
-    // FIXME: detect if the npc is a puppet and refuse to destroy if not
     dumb_ptr<npc_data_script> nd_null;
     npc_enable(nd->name, 0);
     npcs_by_name.put(nd->name, nd_null);
     npc_delete(nd);
+    st->state = ScriptEndState::END;
 }
 /*========================================
  * Creates a temp NPC
@@ -750,14 +750,14 @@ void builtin_puppet(ScriptState *st)
 static
 void builtin_set(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<block_list> bl = nullptr;
     if (auto *u = AARG(0).get_if<ScriptDataParam>())
     {
         SIR reg = u->reg;
-        sd = script_rid2sd(st);
+        bl = script_rid2sd(st)->is_player();
 
         int val = conv_num(st, &AARG(1));
-        set_reg(sd, VariableCode::PARAM, reg, val);
+        set_reg(bl, VariableCode::PARAM, reg, val);
         return;
     }
 
@@ -768,19 +768,33 @@ void builtin_set(ScriptState *st)
     char postfix = name.back();
 
     if (prefix != '$')
-        sd = script_rid2sd(st);
+    {
+        if(HARG(2))
+        {
+            BlockId id = wrap<BlockId>(conv_num(st, &AARG(2)));
+            if(id)
+                bl = map_id2bl(id);
+        }
+        else
+        {
+            if(prefix == '.')
+                bl = map_id2bl(st->oid)->is_npc();
+            else
+                bl = map_id2bl(st->rid)->is_player();
+        }
+    }
 
     if (postfix == '$')
     {
         // 文字列
         RString str = conv_str(st, &AARG(1));
-        set_reg(sd, VariableCode::VARIABLE, reg, str);
+        set_reg(bl, VariableCode::VARIABLE, reg, str);
     }
     else
     {
         // 数値
         int val = conv_num(st, &AARG(1));
-        set_reg(sd, VariableCode::VARIABLE, reg, val);
+        set_reg(bl, VariableCode::VARIABLE, reg, val);
     }
 
 }
@@ -792,26 +806,28 @@ void builtin_set(ScriptState *st)
 static
 void builtin_setarray(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<block_list> bl = nullptr;
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
-    if (prefix != '$' && prefix != '@')
+    if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_setarray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix != '$')
-        sd = script_rid2sd(st);
+    if (prefix == '.')
+        bl = map_id2bl(st->oid)->is_npc();
+    else if (prefix != '$')
+        bl = map_id2bl(st->rid)->is_player();
 
     for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
         if (postfix == '$')
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
+            set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
         else
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARG(i)));
+            set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARG(i)));
     }
 }
 
@@ -822,7 +838,7 @@ void builtin_setarray(ScriptState *st)
 static
 void builtin_cleararray(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<block_list> bl = nullptr;
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
@@ -834,15 +850,17 @@ void builtin_cleararray(ScriptState *st)
         PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix != '$')
-        sd = script_rid2sd(st);
+    if (prefix == '.')
+        bl = map_id2bl(st->oid)->is_npc();
+    else if (prefix != '$')
+        bl = map_id2bl(st->rid)->is_player();
 
     for (int i = 0; i < sz; i++)
     {
         if (postfix == '$')
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
+            set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
         else
-            set_reg(sd, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARG(1)));
+            set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARG(1)));
     }
 
 }
@@ -886,7 +904,7 @@ void builtin_getarraysize(ScriptState *st)
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
 
-    if (prefix != '$' && prefix != '@')
+    if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_copyarray: illegal scope!\n"_fmt);
         return;
@@ -2669,7 +2687,7 @@ void builtin_getpartnerid2(ScriptState *st)
 static
 void builtin_explode(ScriptState *st)
 {
-    dumb_ptr<map_session_data> sd = nullptr;
+    dumb_ptr<block_list> bl = nullptr;
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     const char separator = conv_str(st, &AARG(2))[0];
@@ -2678,13 +2696,15 @@ void builtin_explode(ScriptState *st)
     char prefix = name.front();
     char postfix = name.back();
 
-    if (prefix != '$' && prefix != '@')
+    if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_explode: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix != '$')
-        sd = script_rid2sd(st);
+    if (prefix == '.')
+        bl = map_id2bl(st->oid)->is_npc();
+    else if (prefix != '$')
+        bl = map_id2bl(st->rid)->is_player();
 
     for (int j = 0; j < 256; j++)
     {
@@ -2692,9 +2712,9 @@ void builtin_explode(ScriptState *st)
         if (find == str.end())
         {
             if (postfix == '$')
-                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), str);
+                set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), str);
             else
-                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(str.c_str()));
+                set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), atoi(str.c_str()));
             break;
         }
         {
@@ -2702,9 +2722,9 @@ void builtin_explode(ScriptState *st)
             str = str.xislice_t(find + 1);
 
             if (postfix == '$')
-                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), val);
+                set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), val);
             else
-                set_reg(sd, VariableCode::VARIABLE, reg.iplus(j), atoi(val.c_str()));
+                set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), atoi(val.c_str()));
         }
     }
 }
@@ -2908,6 +2928,31 @@ void builtin_specialeffect2(ScriptState *st)
                                   &AARG(0)),
                         0);
 
+}
+
+static
+void builtin_get(ScriptState *st)
+{
+    BlockId id = wrap<BlockId>(conv_num(st, &AARG(1)));
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
+    ZString name = variable_names.outtern(reg.base());
+    char prefix = name.front();
+    char postfix = name.back();
+
+    if(prefix != '@' && prefix != '.' && prefix){
+        PRINTF("builtin_get: illegal scope !\n"_fmt);
+        return;
+    }
+
+    if (postfix == '$'){
+        ZString var = pc_readregstr(bl, reg);
+        push_str<ScriptDataStr>(st->stack, var);
+    }
+    else{
+        int var = pc_readreg(bl, reg);
+        push_int<ScriptDataInt>(st->stack, var);
+    }
 }
 
 /*==========================================
@@ -3582,7 +3627,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
-    BUILTIN(set, "Ne"_s, '\0'),
+    BUILTIN(set, "Ne?"_s, '\0'),
+    BUILTIN(get, "NP"_s, '.'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
     BUILTIN(getarraysize, "N"_s, 'i'),
@@ -3690,7 +3736,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(aggravate, "Mxyxyi"_s, '\0'),
     BUILTIN(fakenpcname, "ssi"_s, '\0'),
     BUILTIN(puppet, "mxysi"_s, 'i'),
-    BUILTIN(destroypuppet, "?"_s, '\0'),
+    BUILTIN(destroy, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),
