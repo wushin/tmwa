@@ -771,9 +771,38 @@ void builtin_set(ScriptState *st)
     {
         if(HARG(2))
         {
-            BlockId id = wrap<BlockId>(conv_num(st, &AARG(2)));
-            if(id)
-                bl = map_id2bl(id);
+            BlockId id;
+            struct script_data *sdata = &AARG(2);
+            get_val(st, sdata);
+            if(prefix == '.')
+            {
+                NpcName name;
+                if (sdata->is<ScriptDataStr>())
+                {
+                    name = stringish<NpcName>(ZString(conv_str(st, sdata)));
+                    bl = npc_name2id(name);
+                }
+                else
+                {
+                    id = wrap<BlockId>(conv_num(st, sdata));
+                    bl = map_id2bl(id);
+                }
+            }
+            else
+            {
+                CharName name;
+                if (sdata->is<ScriptDataStr>())
+                {
+                    name = stringish<CharName>(ZString(conv_str(st, sdata)));
+                    if (name.to__actual())
+                        bl = map_nick2sd(name);
+                }
+                else
+                {
+                    id = wrap<BlockId>(conv_num(st, sdata));
+                    bl = map_id2bl(id);
+                }
+            }
         }
         else
         {
@@ -845,7 +874,7 @@ void builtin_cleararray(ScriptState *st)
     char postfix = name.back();
     int sz = conv_num(st, &AARG(2));
 
-    if (prefix != '$' && prefix != '@')
+    if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
@@ -2933,23 +2962,64 @@ void builtin_specialeffect2(ScriptState *st)
 static
 void builtin_get(ScriptState *st)
 {
-    BlockId id = wrap<BlockId>(conv_num(st, &AARG(1)));
-    dumb_ptr<block_list> bl = map_id2bl(id);
+    BlockId id;
+    dumb_ptr<block_list> bl = nullptr;
+    struct script_data *sdata = &AARG(1);
+    get_val(st, sdata);
+
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
-    if(prefix != '@' && prefix != '.' && prefix){
+    if(prefix == '.')
+    {
+        NpcName name;
+        if (sdata->is<ScriptDataStr>())
+        {
+            name = stringish<NpcName>(ZString(conv_str(st, sdata)));
+            bl = npc_name2id(name);
+        }
+        else
+        {
+            id = wrap<BlockId>(conv_num(st, sdata));
+            bl = map_id2bl(id);
+        }
+    }
+    else if(prefix != '$')
+    {
+        CharName name;
+        if (sdata->is<ScriptDataStr>())
+        {
+            name = stringish<CharName>(ZString(conv_str(st, sdata)));
+            if (name.to__actual())
+                bl = map_nick2sd(name);
+        }
+        else
+        {
+            id = wrap<BlockId>(conv_num(st, sdata));
+            bl = map_id2bl(id);
+        }
+    }
+    else
+    {
         PRINTF("builtin_get: illegal scope !\n"_fmt);
         return;
     }
 
-    if (postfix == '$'){
+    if (!bl)
+    {
+        PRINTF("builtin_get: no block list attached !\n"_fmt);
+        return;
+    }
+
+    if (postfix == '$')
+    {
         ZString var = pc_readregstr(bl, reg);
         push_str<ScriptDataStr>(st->stack, var);
     }
-    else{
+    else
+    {
         int var = pc_readreg(bl, reg);
         push_int<ScriptDataInt>(st->stack, var);
     }
@@ -3628,7 +3698,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(if, "iF*"_s, '\0'),
     BUILTIN(set, "Ne?"_s, '\0'),
-    BUILTIN(get, "NP"_s, '.'),
+    BUILTIN(get, "Ne"_s, '.'),
     BUILTIN(setarray, "Ne*"_s, '\0'),
     BUILTIN(cleararray, "Nei"_s, '\0'),
     BUILTIN(getarraysize, "N"_s, 'i'),
