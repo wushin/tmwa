@@ -304,7 +304,6 @@ struct npc_timerevent_list
 {
     interval_t timer;
     int pos;
-    BlockId parent;
 };
 struct npc_label_list
 {
@@ -360,6 +359,9 @@ public:
         // Diameter.
         short xs, ys;
         bool event_needs_map;
+
+        // the npc containing the actual script
+        BlockId parent;
 
         // Whether the timer advances if not beyond end.
         bool timer_active;

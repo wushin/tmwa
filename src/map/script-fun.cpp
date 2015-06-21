@@ -649,8 +649,7 @@ void builtin_puppet(ScriptState *st)
     int x, y;
 
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
-    dumb_ptr<npc_data_script> old_nd = bl->is_npc()->is_script();
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<npc_data_script> parent_nd = bl->is_npc()->is_script();
     dumb_ptr<npc_data_script> nd;
     nd.new_();
 
@@ -675,6 +674,7 @@ void builtin_puppet(ScriptState *st)
     nd->bl_x = x;
     nd->bl_y = y;
     nd->bl_id = npc_get_new_npc_id();
+    nd->scr.parent = parent_nd->bl_id;
     nd->dir = DIR::S;
     nd->flag = 0;
     nd->sit = DamageType::STAND;
@@ -684,7 +684,7 @@ void builtin_puppet(ScriptState *st)
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
-    nd->scr.label_listv = old_nd->scr.label_listv;
+    nd->scr.label_listv = parent_nd->scr.label_listv;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
     npc_script++;
@@ -696,7 +696,7 @@ void builtin_puppet(ScriptState *st)
 
     register_npc_name(nd);
 
-    for (npc_label_list& el : old_nd->scr.label_listv)
+    for (npc_label_list& el : parent_nd->scr.label_listv)
     {
         ScriptLabel lname = el.name;
         int pos = el.pos;
@@ -704,8 +704,7 @@ void builtin_puppet(ScriptState *st)
         if (lname.startswith("On"_s))
         {
             struct event_data ev {};
-            ev.nd = old_nd;
-            ev.child = nd->bl_id;
+            ev.nd = nd;
             ev.pos = pos;
             NpcEvent buf;
             buf.npc = nd->name;
@@ -714,7 +713,7 @@ void builtin_puppet(ScriptState *st)
         }
     }
 
-    for (npc_label_list& el : old_nd->scr.label_listv)
+    for (npc_label_list& el : parent_nd->scr.label_listv)
     {
         int t_ = 0;
         ScriptLabel lname = el.name;
@@ -726,7 +725,6 @@ void builtin_puppet(ScriptState *st)
             npc_timerevent_list tel {};
             tel.timer = t;
             tel.pos = pos;
-            tel.parent = old_nd->bl_id;
 
             auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
                     [](const npc_timerevent_list& l, const npc_timerevent_list& r)
