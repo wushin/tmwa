@@ -290,8 +290,8 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
 
     if (name == p)
     {
-        if (name == stringish<ScriptLabel>("OnInit"_s) && ev->nd->disposable)
-            return; // do not run OnInit for temporary npcs
+        if (ev->nd->disposable)
+            return; // temporary npcs only respond to commands directly issued to them
         run_script_l(ScriptPointer(script_or_parent(ev->nd), ev->pos), rid, ev->nd->bl_id,
                 argv);
         (*c)++;
