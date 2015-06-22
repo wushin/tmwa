@@ -629,12 +629,8 @@ void builtin_destroy(ScriptState *st)
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     if(!nd)
         return;
-
     assert(nd->disposable == true);
-    dumb_ptr<npc_data_script> nd_null;
-    npc_enable(nd->name, 0);
-    npcs_by_name.put(nd->name, nd_null);
-    npc_delete(nd);
+    npc_free(nd);
     if (!HARG(0))
         st->state = ScriptEndState::END;
 }

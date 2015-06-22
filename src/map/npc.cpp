@@ -1043,18 +1043,18 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
         dumb_ptr<npc_data_script> nd = nd_->is_script();
+        nd->scr.timerid.cancel();
         nd->scr.timer_eventv.clear();
-
-        {
-            nd->scr.script.reset();
-            nd->scr.label_listv.clear();
-        }
+        nd->scr.script.reset();
+        nd->scr.label_listv.clear();
     }
     else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
     {
         dumb_ptr<npc_data_message> nd = nd_->is_message();
         nd->message = AString();
     }
+    if (nd_->name)
+        npcs_by_name.put(nd_->name, nullptr);
     nd_.delete_();
 }
 
