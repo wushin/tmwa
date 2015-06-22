@@ -178,6 +178,18 @@ void get_val(ScriptState *st, struct script_data *data)
             ZString name_ = variable_names.outtern(u.reg.base());
             VarName name = stringish<VarName>(name_);
             char prefix = name.front();
+            if (prefix == '.' && name[1] == '@')
+            {
+                if (name.back() == '$')
+                {
+                    Option<P<RString>> s = st->regstrm.search(u.reg);
+                    ZString val = s.map([](P<RString> s_) -> ZString { return *s_; }).copy_or(""_s);
+                    *data = ScriptDataStr{val};
+                }
+                else
+                    *data = ScriptDataInt{st->regm.get(u.reg)};
+                return;
+            }
             if (prefix == '.' && st->oid)
                 bl = map_id2bl(st->oid);
             else if (prefix != '$' && st->rid)
@@ -257,6 +269,27 @@ void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_
             pc_setglobalreg(sd->is_player(), name, val);
         }
     }
+}
+
+void set_scope_reg(ScriptState *st, SIR reg, struct script_data vd)
+{
+    ZString name = variable_names.outtern(reg.base());
+    if (name.back() == '$')
+    {
+        if (auto *u = vd.get_if<ScriptDataStr>())
+        {
+            if (!u->str)
+            {
+                st->regstrm.erase(reg);
+                return;
+            }
+            st->regstrm.insert(reg, u->str);
+        }
+        else
+            st->regstrm.erase(reg);
+    }
+    else if (auto *u = vd.get_if<ScriptDataInt>())
+        st->regm.put(reg, u->numi);
 }
 
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id)
