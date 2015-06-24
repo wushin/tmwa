@@ -629,12 +629,8 @@ void builtin_destroy(ScriptState *st)
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     if(!nd)
         return;
-
     assert(nd->disposable == true);
-    dumb_ptr<npc_data_script> nd_null;
-    npc_enable(nd->name, 0);
-    npcs_by_name.put(nd->name, nd_null);
-    npc_delete(nd);
+    npc_free(nd);
     if (!HARG(0))
         st->state = ScriptEndState::END;
 }
@@ -649,8 +645,7 @@ void builtin_puppet(ScriptState *st)
     int x, y;
 
     dumb_ptr<block_list> bl = map_id2bl(st->oid);
-    dumb_ptr<npc_data_script> old_nd = bl->is_npc()->is_script();
-    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+    dumb_ptr<npc_data_script> parent_nd = bl->is_npc()->is_script();
     dumb_ptr<npc_data_script> nd;
     nd.new_();
 
@@ -675,6 +670,7 @@ void builtin_puppet(ScriptState *st)
     nd->bl_x = x;
     nd->bl_y = y;
     nd->bl_id = npc_get_new_npc_id();
+    nd->scr.parent = parent_nd->bl_id;
     nd->dir = DIR::S;
     nd->flag = 0;
     nd->sit = DamageType::STAND;
@@ -684,7 +680,7 @@ void builtin_puppet(ScriptState *st)
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
-    nd->scr.label_listv = old_nd->scr.label_listv;
+    nd->scr.label_listv = parent_nd->scr.label_listv;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
     npc_script++;
@@ -696,7 +692,7 @@ void builtin_puppet(ScriptState *st)
 
     register_npc_name(nd);
 
-    for (npc_label_list& el : old_nd->scr.label_listv)
+    for (npc_label_list& el : parent_nd->scr.label_listv)
     {
         ScriptLabel lname = el.name;
         int pos = el.pos;
@@ -704,8 +700,7 @@ void builtin_puppet(ScriptState *st)
         if (lname.startswith("On"_s))
         {
             struct event_data ev {};
-            ev.nd = old_nd;
-            ev.child = nd->bl_id;
+            ev.nd = nd;
             ev.pos = pos;
             NpcEvent buf;
             buf.npc = nd->name;
@@ -714,7 +709,7 @@ void builtin_puppet(ScriptState *st)
         }
     }
 
-    for (npc_label_list& el : old_nd->scr.label_listv)
+    for (npc_label_list& el : parent_nd->scr.label_listv)
     {
         int t_ = 0;
         ScriptLabel lname = el.name;
@@ -726,7 +721,6 @@ void builtin_puppet(ScriptState *st)
             npc_timerevent_list tel {};
             tel.timer = t;
             tel.pos = pos;
-            tel.parent = old_nd->bl_id;
 
             auto it = std::lower_bound(nd->scr.timer_eventv.begin(), nd->scr.timer_eventv.end(), tel,
                     [](const npc_timerevent_list& l, const npc_timerevent_list& r)
@@ -789,8 +783,9 @@ void builtin_set(ScriptState *st)
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
 
     ZString name = variable_names.outtern(reg.base());
-    char prefix = name.front();
-    char postfix = name.back();
+    VarName name_ = stringish<VarName>(name);
+    char prefix = name_.front();
+    char postfix = name_.back();
 
     if (prefix != '$')
     {
@@ -800,11 +795,16 @@ void builtin_set(ScriptState *st)
             get_val(st, sdata);
             if(prefix == '.')
             {
-                NpcName name;
+                if (name_[1] == '@')
+                {
+                    PRINTF("builtin_set: illegal scope!\n"_fmt);
+                    return;
+                }
+                NpcName n_name;
                 if (sdata->is<ScriptDataStr>())
                 {
-                    name = stringish<NpcName>(ZString(conv_str(st, sdata)));
-                    bl = npc_name2id(name);
+                    n_name = stringish<NpcName>(ZString(conv_str(st, sdata)));
+                    bl = npc_name2id(n_name);
                 }
                 else
                 {
@@ -814,12 +814,12 @@ void builtin_set(ScriptState *st)
             }
             else
             {
-                CharName name;
+                CharName c_name;
                 if (sdata->is<ScriptDataStr>())
                 {
-                    name = stringish<CharName>(ZString(conv_str(st, sdata)));
-                    if (name.to__actual())
-                        bl = map_nick2sd(name);
+                    c_name = stringish<CharName>(ZString(conv_str(st, sdata)));
+                    if (c_name.to__actual())
+                        bl = map_nick2sd(c_name);
                 }
                 else
                 {
@@ -831,7 +831,14 @@ void builtin_set(ScriptState *st)
         else
         {
             if(prefix == '.')
+            {
+                if (name_[1] == '@')
+                {
+                        set_scope_reg(st, reg, AARG(1));
+                    return;
+                }
                 bl = map_id2bl(st->oid)->is_npc();
+            }
             else
                 bl = map_id2bl(st->rid)->is_player();
         }
@@ -872,14 +879,16 @@ void builtin_setarray(ScriptState *st)
         PRINTF("builtin_setarray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.')
+    if (prefix == '.' && name[1] != '@')
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$')
         bl = map_id2bl(st->rid)->is_player();
 
     for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
-        if (postfix == '$')
+        if (prefix == '.' && name[1] == '@')
+            set_scope_reg(st, reg.iplus(j), AARG(i));
+        else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
         else
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_num(st, &AARG(i)));
@@ -905,14 +914,16 @@ void builtin_cleararray(ScriptState *st)
         PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.')
+    if (prefix == '.' && name[1] != '@')
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$')
         bl = map_id2bl(st->rid)->is_player();
 
     for (int i = 0; i < sz; i++)
     {
-        if (postfix == '$')
+        if (prefix == '.' && name[1] == '@')
+            set_scope_reg(st, reg.iplus(i), AARG(i));
+        else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
         else
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_num(st, &AARG(1)));
@@ -1905,6 +1916,20 @@ void builtin_addtimer(ScriptState *st)
 }
 
 /*==========================================
+ * NPCイベントタイマー追加
+ *------------------------------------------
+ */
+static
+void builtin_addnpctimer(ScriptState *st)
+{
+    interval_t tick = static_cast<interval_t>(conv_num(st, &AARG(0)));
+    ZString event_ = ZString(conv_str(st, &AARG(1)));
+    NpcEvent event;
+    extract(event_, &event);
+    npc_addeventtimer(map_id2bl(st->oid), tick, event);
+}
+
+/*==========================================
  * NPCタイマー初期化
  *------------------------------------------
  */
@@ -2749,9 +2774,9 @@ void builtin_explode(ScriptState *st)
         PRINTF("builtin_explode: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.')
+    if (prefix == '.' && name[1] != '@')
         bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$')
+    else if (prefix != '$' && prefix != '.')
         bl = map_id2bl(st->rid)->is_player();
 
     for (int j = 0; j < 256; j++)
@@ -2759,7 +2784,14 @@ void builtin_explode(ScriptState *st)
         auto find = std::find(str.begin(), str.end(), separator);
         if (find == str.end())
         {
-            if (postfix == '$')
+            if (prefix == '.' && name[1] == '@')
+            {
+                struct script_data vd = script_data(ScriptDataInt{atoi(str.c_str())});
+                if (postfix == '$')
+                    vd = script_data(ScriptDataStr{str});
+                set_scope_reg(st, reg.iplus(j), vd);
+            }
+            else if (postfix == '$')
                 set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), str);
             else
                 set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), atoi(str.c_str()));
@@ -2769,7 +2801,14 @@ void builtin_explode(ScriptState *st)
             val = str.xislice_h(find);
             str = str.xislice_t(find + 1);
 
-            if (postfix == '$')
+            if (prefix == '.' && name[1] == '@')
+            {
+                struct script_data vd = script_data(ScriptDataInt{atoi(val.c_str())});
+                if (postfix == '$')
+                    vd = script_data(ScriptDataStr{val});
+                set_scope_reg(st, reg.iplus(j), vd);
+            }
+            else if (postfix == '$')
                 set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), val);
             else
                 set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), atoi(val.c_str()));
@@ -3012,12 +3051,17 @@ void builtin_get(ScriptState *st)
     get_val(st, sdata);
 
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
-    ZString name = variable_names.outtern(reg.base());
-    char prefix = name.front();
-    char postfix = name.back();
+    ZString name_ = variable_names.outtern(reg.base());
+    char prefix = name_.front();
+    char postfix = name_.back();
 
     if(prefix == '.')
     {
+        if (name_[1] == '@')
+        {
+            PRINTF("builtin_get: illegal scope!\n"_fmt);
+            return;
+        }
         NpcName name;
         if (sdata->is<ScriptDataStr>())
         {
@@ -3610,6 +3654,18 @@ void builtin_gety(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, sd->bl_y);
 }
 
+/*============================
+ * Gets the PC's direction
+ *----------------------------
+ */
+static
+void builtin_getdir(ScriptState *st)
+{
+    dumb_ptr<map_session_data> sd = script_rid2sd(st);
+
+    push_int<ScriptDataInt>(st->stack, static_cast<uint8_t>(sd->dir));
+}
+
 /*
  * Get the PC's current map's name
  */
@@ -3632,11 +3688,23 @@ void builtin_strnpcinfo(ScriptState *st)
     dumb_ptr<npc_data> nd;
 
     if(HARG(1)){
-        NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(1))));
-        nd = npc_name2id(npc);
+        struct script_data *sdata = &AARG(1);
+        get_val(st, sdata);
+
+        if (sdata->is<ScriptDataStr>())
+        {
+            NpcName name = stringish<NpcName>(ZString(conv_str(st, sdata)));
+            nd = npc_name2id(name);
+        }
+        else
+        {
+            BlockId id = wrap<BlockId>(conv_num(st, sdata));
+            nd = map_id2bl(id)->is_npc();
+        }
+
         if (!nd)
         {
-            PRINTF("builtin_strnpcinfo: no such npc: '%s'\n"_fmt, npc);
+            PRINTF("builtin_strnpcinfo: npc not found\n"_fmt);
             return;
         }
     } else {
@@ -3778,6 +3846,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(killmonster, "ME"_s, '\0'),
     BUILTIN(donpcevent, "E"_s, '\0'),
     BUILTIN(addtimer, "tE"_s, '\0'),
+    BUILTIN(addnpctimer, "tE"_s, '\0'),
     BUILTIN(initnpctimer, "?"_s, '\0'),
     BUILTIN(startnpctimer, "?"_s, '\0'),
     BUILTIN(stopnpctimer, "?"_s, '\0'),
@@ -3851,6 +3920,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(destroy, "?"_s, '\0'),
     BUILTIN(getx, ""_s, 'i'),
     BUILTIN(gety, ""_s, 'i'),
+    BUILTIN(getdir, ""_s, 'i'),
     BUILTIN(getnpcx, "?"_s, 'i'),
     BUILTIN(getnpcy, "?"_s, 'i'),
     BUILTIN(strnpcinfo, "i?"_s, 's'),

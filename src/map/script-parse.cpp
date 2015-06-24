@@ -285,6 +285,8 @@ ZString::iterator skip_word(ZString::iterator p)
         p++;                    // 一時的変数用(like weiss)
     if (*p == '.')
         p++;                    // npc
+    if (*p == '@')
+        p++;                    // scope
     if (*p == '#')
         p++;                    // account変数用
     if (*p == '#')

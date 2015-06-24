@@ -178,6 +178,18 @@ void get_val(ScriptState *st, struct script_data *data)
             ZString name_ = variable_names.outtern(u.reg.base());
             VarName name = stringish<VarName>(name_);
             char prefix = name.front();
+            if (prefix == '.' && name[1] == '@')
+            {
+                if (name.back() == '$')
+                {
+                    Option<P<RString>> s = st->regstrm.search(u.reg);
+                    ZString val = s.map([](P<RString> s_) -> ZString { return *s_; }).copy_or(""_s);
+                    *data = ScriptDataStr{val};
+                }
+                else
+                    *data = ScriptDataInt{st->regm.get(u.reg)};
+                return;
+            }
             if (prefix == '.' && st->oid)
                 bl = map_id2bl(st->oid);
             else if (prefix != '$' && st->rid)
@@ -257,6 +269,27 @@ void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, struct script_
             pc_setglobalreg(sd->is_player(), name, val);
         }
     }
+}
+
+void set_scope_reg(ScriptState *st, SIR reg, struct script_data vd)
+{
+    ZString name = variable_names.outtern(reg.base());
+    if (name.back() == '$')
+    {
+        if (auto *u = vd.get_if<ScriptDataStr>())
+        {
+            if (!u->str)
+            {
+                st->regstrm.erase(reg);
+                return;
+            }
+            st->regstrm.insert(reg, u->str);
+        }
+        else
+            st->regstrm.erase(reg);
+    }
+    else if (auto *u = vd.get_if<ScriptDataInt>())
+        st->regm.put(reg, u->numi);
 }
 
 void set_reg(dumb_ptr<block_list> sd, VariableCode type, SIR reg, int id)
@@ -894,6 +927,24 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     ScriptState st;
     dumb_ptr<block_list> bl = map_id2bl(rid);
     dumb_ptr<map_session_data> sd = bl? bl->is_player(): nullptr;
+    if (oid)
+    {
+        dumb_ptr<block_list> oid_bl = map_id2bl(oid);
+        if (oid_bl->bl_type == BL::NPC)
+        {
+            dumb_ptr<npc_data> nd = oid_bl->is_npc();
+            if(nd->npc_subtype == NpcSubtype::SCRIPT)
+            {
+                dumb_ptr<npc_data_script> nds = nd->is_script();
+                if (nds->scr.parent)
+                {
+                    dumb_ptr<npc_data_script> parent = map_id2bl(nds->scr.parent)->is_npc()->is_script();
+                    assert(parent->bl_type == BL::NPC && parent->npc_subtype == NpcSubtype::SCRIPT);
+                    sp = ScriptPointer(borrow(*parent->scr.script), sp.pos);
+                }
+            }
+        }
+    }
     P<const ScriptBuffer> rootscript = TRY_UNWRAP(sp.code, return -1);
     int i;
     if (sp.pos >> 24)
@@ -909,9 +960,6 @@ int run_script_l(ScriptPointer sp, BlockId rid, BlockId oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
-
-    if(!sd && rid)
-        st.oid = rid; // run script as another npc
 
     for (i = 0; i < args.size(); i++)
     {
