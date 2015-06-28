@@ -56,6 +56,7 @@ public:
     BlockId rid, oid;
     ScriptPointer scriptp, new_scriptp;
     int defsp, new_defsp, freeloop;
+    int is_true = 0;
 
     // register keys are ints (interned)
     // Not anymore! Well, sort of.
