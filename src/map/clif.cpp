@@ -3834,10 +3834,10 @@ RecvResult clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         clif_message_sub(sendbuf, sd, mbuf);
 
         clif_send(sendbuf, sd, SendWho::AREA_CHAT_WOC, MIN_CLIENT_VERSION);
-    }
 
-    /* Send the message back to the speaker. */
-    send_packet_repeatonly<0x008e, 4, 1>(s, repeat);
+        /* Send the message back to the speaker. */
+        send_packet_repeatonly<0x008e, 4, 1>(s, repeat);
+    }
 
     return rv;
 }
