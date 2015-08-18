@@ -318,6 +318,22 @@ void builtin_rand(ScriptState *st)
     }
 }
 
+static
+void builtin_max(ScriptState *st)
+{
+    int a = conv_num(st, &AARG(0));
+    int b = conv_num(st, &AARG(1));
+    push_int<ScriptDataInt>(st->stack, std::max(a,b));
+}
+
+static
+void builtin_min(ScriptState *st)
+{
+    int a = conv_num(st, &AARG(0));
+    int b = conv_num(st, &AARG(1));
+    push_int<ScriptDataInt>(st->stack, std::min(a,b));
+}
+
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
@@ -4116,6 +4132,8 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(freeloop, "i"_s, '\0'),
     BUILTIN(target, "iii"_s, 'i'),
     BUILTIN(distance, "ii?"_s, 'i'),
+    BUILTIN(max, "ii"_s, 'i'),
+    BUILTIN(min, "ii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
