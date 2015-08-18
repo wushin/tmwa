@@ -334,6 +334,24 @@ void builtin_min(ScriptState *st)
     push_int<ScriptDataInt>(st->stack, std::min(a,b));
 }
 
+static
+void builtin_sqrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(sqrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_cbrt(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(cbrt(conv_num(st, &AARG(0)))));
+}
+
+static
+void builtin_pow(ScriptState *st)
+{
+    push_int<ScriptDataInt>(st->stack, static_cast<int>(pow(conv_num(st, &AARG(0)), conv_num(st, &AARG(1)))));
+}
+
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
@@ -4134,6 +4152,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(distance, "ii?"_s, 'i'),
     BUILTIN(max, "ii"_s, 'i'),
     BUILTIN(min, "ii"_s, 'i'),
+    BUILTIN(sqrt, "i"_s, 'i'),
+    BUILTIN(cbrt, "i"_s, 'i'),
+    BUILTIN(pow, "ii"_s, 'i'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
