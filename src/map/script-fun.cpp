@@ -662,6 +662,27 @@ void builtin_if (ScriptState *st)
 }
 
 static
+void builtin_if_then_else (ScriptState *st)
+{
+    int condition = conv_num(st, &AARG(0));
+
+    if (condition)
+    {
+        if (auto *u = AARG(1).get_if<ScriptDataInt>())
+            push_int<ScriptDataInt>(st->stack, u->numi);
+        else if (auto *r = AARG(1).get_if<ScriptDataStr>()) // FIXME: add new data types in the future, or just copy
+            push_str<ScriptDataStr>(st->stack, r->str);
+    }
+    else
+    {
+        if (auto *u = AARG(2).get_if<ScriptDataInt>())
+            push_int<ScriptDataInt>(st->stack, u->numi);
+        else if (auto *r = AARG(2).get_if<ScriptDataStr>())
+            push_str<ScriptDataStr>(st->stack, r->str);
+    }
+}
+
+static
 void builtin_else (ScriptState *st)
 {
     int i;
@@ -4159,6 +4180,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(sqrt, "i"_s, 'i'),
     BUILTIN(cbrt, "i"_s, 'i'),
     BUILTIN(pow, "ii"_s, 'i'),
+    BUILTIN(if_then_else, "iii"_s, '.'),
     {nullptr, ""_s, ""_s, '\0'},
 };
 } // namespace map
