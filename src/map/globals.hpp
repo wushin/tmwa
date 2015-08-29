@@ -71,6 +71,7 @@ namespace tmwa
         extern DMap<RString, NpcEvent> spells_by_events;
         extern tm ev_tm_b;
         extern Map<PartyId, PartyMost> party_db;
+        extern Map<GuildId, GuildMost> guild_db;
         extern std::map<AccountId, GmLevel> gm_accountm;
         extern tick_t natural_heal_tick, natural_heal_prev_tick;
         extern interval_t natural_heal_diff_tick;
