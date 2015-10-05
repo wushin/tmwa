@@ -3746,6 +3746,20 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
+  * register skill
+  *------------------------------------------
+  */
+static
+void builtin_registermobskill(ScriptState *st)
+{
+    Species mob_id = wrap<Species>(conv_num(st, &AARG(0)));
+    ZString event_ = conv_str(st, &AARG(1));
+    NpcEvent event;
+    extract(event_, &event);
+    mobskills_by_events.put(mob_id, event);
+}
+
+/*==========================================
   * register cmd
   *------------------------------------------
   */
@@ -4272,6 +4286,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(npcareawarp, "xyxyis"_s, '\0'),
     BUILTIN(message, "Ps"_s, '\0'),
     BUILTIN(npctalk, "ss?"_s, '\0'),
+    BUILTIN(registermobskill, "is"_s, '\0'),
     BUILTIN(registercmd, "ss"_s, '\0'),
     BUILTIN(title, "s"_s, '\0'),
     BUILTIN(music, "s"_s, '\0'),

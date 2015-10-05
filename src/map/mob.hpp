@@ -117,7 +117,6 @@ short mob_get_clothes_color(Species);  //player mob dye [Valaris]
 int mob_get_equip(Species);       // mob equip [Valaris]
 
 bool mob_readdb(ZString filename);
-bool mob_readskilldb(ZString filename);
 void do_init_mob2(void);
 
 int mob_delete(dumb_ptr<mob_data> md);
@@ -131,10 +130,8 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
 
 int mob_warp(dumb_ptr<mob_data> md, Option<Borrowed<map_local>> m, int x, int y, BeingRemoveWhy type);
 
-int mobskill_use(dumb_ptr<mob_data> md, tick_t tick, MobSkillCondition event);
+int mobskill_use(dumb_ptr<mob_data> md);
 int mobskill_event(dumb_ptr<mob_data> md, BF flag);
-void mobskill_castend_id(TimerData *tid, tick_t tick, BlockId id);
-void mobskill_castend_pos(TimerData *tid, tick_t tick, BlockId id);
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);

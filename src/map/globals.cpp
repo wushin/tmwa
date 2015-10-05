@@ -74,6 +74,7 @@ namespace tmwa
         Map<NpcEvent, struct event_data> ev_db;
         DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
         DMap<RString, NpcEvent> spells_by_events;
+        DMap<Species, NpcEvent> mobskills_by_events;
         // used for clock-based event triggers
         // only tm_min, tm_hour, and tm_mday are used
         tm ev_tm_b =

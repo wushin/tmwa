@@ -1485,8 +1485,6 @@ bool map_confs(io::Spanned<XString> key, io::Spanned<ZString> value)
         return mob_readdb(value.data);
     if (key.data == "quest_db"_s)
         return quest_readdb(value.data);
-    if (key.data == "mob_skill_db"_s)
-        return mob_readskilldb(value.data);
     if (key.data == "skill_db"_s)
         return skill_readdb(value.data);
 

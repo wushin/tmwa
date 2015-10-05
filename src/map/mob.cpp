@@ -87,9 +87,6 @@ static
 int mob_makedummymobdb(Species);
 static
 void mob_timer(TimerData *, tick_t, BlockId, unsigned char);
-static
-int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
-        mob_skill& skill_idx);
 
 /*==========================================
  * Mob is searched with a name.
@@ -816,7 +813,7 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
     //clif_fixmobpos(md);
 
     md->state.skillstate = MobSkillState::MSS_ATTACK;
-    if (mobskill_use(md, tick, MobSkillCondition::NEVER_EQUAL))
+    if (mobskill_use(md))
         return 0;
 
     md->target_lv = battle_weapon_attack(md, tbl, tick);
@@ -1940,7 +1937,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     if (!mob_can_move(md)) // 動けない状態にある
                         return;
                     md->state.skillstate = MobSkillState::MSS_CHASE;   // 突撃時スキル
-                    mobskill_use(md, tick, MobSkillCondition::ANY);
+                    mobskill_use(md);
                     if (md->timer && md->state.state != MS::ATTACK
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) < 2))
@@ -2029,7 +2026,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     if (!mob_can_move(md)) // 動けない状態にある
                         return;
                     md->state.skillstate = MobSkillState::MSS_LOOT;    // ルート時スキル使用
-                    mobskill_use(md, tick, MobSkillCondition::ANY);
+                    mobskill_use(md);
                     if (md->timer && md->state.state != MS::ATTACK
                         && (md->next_walktime < tick
                             || distance(md->to_x, md->to_y, tbl->bl_x, tbl->bl_y) <= 0))
@@ -2065,7 +2062,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     }
 
     // It is skill use at the time of /standby at the time of a walk.
-    if (mobskill_use(md, tick, MobSkillCondition::ANY))
+    if (mobskill_use(md))
         return;
 
     // mobs that are not slaves can random-walk
@@ -2408,7 +2405,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         {
             mob_changestate(md, MS::DEAD, 0);
             // It is skill at the time of death.
-            mobskill_use(md, tick, MobSkillCondition::ANY);
+            mobskill_use(md);
 
             clif_clearchar(md, BeingRemoveWhy::DEAD);
             map_delblock(md);
@@ -2503,7 +2500,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     MapBlockLock lock;
     // cancels timers
     mob_changestate(md, MS::DEAD, 0);
-    mobskill_use(md, tick, MobSkillCondition::ANY);
+    mobskill_use(md);
 
     max_hp = battle_get_max_hp(md);
 
@@ -3015,263 +3012,11 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
     return c;
 }
 
-//
-// MOBスキル
-//
-
-/*==========================================
- * スキル使用（詠唱完了、ID指定）
- *------------------------------------------
- */
-void mobskill_castend_id(TimerData *, tick_t tick, BlockId id)
-{
-    dumb_ptr<mob_data> md = nullptr;
-    dumb_ptr<block_list> bl;
-    dumb_ptr<block_list> mbl;
-    int range;
-
-    if ((mbl = map_id2bl(id)) == nullptr) //詠唱したMobがもういないというのは良くある正常処理
-        return;
-    if ((md = mbl->is_mob()) == nullptr)
-    {
-        PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n"_fmt, mbl->bl_id);
-        return;
-    }
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
-        return;
-
-    if (bool(md->opt1))
-        return;
-
-    if (md->skillid != SkillID::NPC_EMOTION)
-        md->last_thinktime = tick + battle_get_adelay(md);
-
-    if ((bl = map_id2bl(md->skilltarget)) == nullptr || bl->bl_prev == nullptr)
-    {                           //スキルターゲットが存在しない
-        return;
-    }
-    if (md->bl_m != bl->bl_m)
-        return;
-
-    if (((skill_get_inf(md->skillid) & 1) || (skill_get_inf2(md->skillid) & 4)) &&    // 彼我敵対関係チェック
-        battle_check_target(md, bl, BCT_ENEMY) <= 0)
-        return;
-    range = skill_get_range(md->skillid, md->skilllv);
-    if (range < 0)
-        range = battle_get_range(md) - (range + 1);
-    if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y))
-        return;
-
-    md->skilldelayup[md->skillidx - &get_mob_db(md->mob_class).skills.front()] = tick;
-
-    if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
-                md->skillid, md->mob_class);
-    mob_stop_walking(md, 0);
-
-    switch (skill_get_nk(md->skillid))
-    {
-            // 攻撃系/吹き飛ばし系
-        case 0:
-        case 2:
-            skill_castend_damage_id(md, bl,
-                    md->skillid, md->skilllv,
-                    tick, BCT_ZERO);
-            break;
-        case 1:                // 支援系
-            skill_castend_nodamage_id(md, bl,
-                    md->skillid, md->skilllv);
-            break;
-    }
-}
-
-/*==========================================
- * スキル使用（詠唱完了、場所指定）
- *------------------------------------------
- */
-void mobskill_castend_pos(TimerData *, tick_t tick, BlockId id)
-{
-    dumb_ptr<mob_data> md = nullptr;
-    dumb_ptr<block_list> bl;
-    int range;
-
-    //mobskill_castend_id同様詠唱したMobが詠唱完了時にもういないというのはありそうなのでnullpoから除外
-    if ((bl = map_id2bl(id)) == nullptr)
-        return;
-
-    md = bl->is_mob();
-    nullpo_retv(md);
-
-    if (md->bl_type != BL::MOB || md->bl_prev == nullptr)
-        return;
-
-    if (bool(md->opt1))
-        return;
-
-    range = skill_get_range(md->skillid, md->skilllv);
-    if (range < 0)
-        range = battle_get_range(md) - (range + 1);
-    if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, md->skillx, md->skilly))
-        return;
-    md->skilldelayup[md->skillidx - &get_mob_db(md->mob_class).skills.front()] = tick;
-
-    if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
-                md->skillid, md->mob_class);
-    mob_stop_walking(md, 0);
-}
-
-/*==========================================
- * Skill use (an aria start, ID specification)
- *------------------------------------------
- */
-int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
-        mob_skill& skill_idx)
-{
-    int range;
-    struct mob_skill *ms;
-    SkillID skill_id;
-    int skill_lv;
-
-    nullpo_retz(md);
-    ms = &skill_idx;
-
-    if (target == nullptr && (target = map_id2bl(md->target_id)) == nullptr)
-        return 0;
-
-    if (target->bl_prev == nullptr || md->bl_prev == nullptr)
-        return 0;
-
-    skill_id = ms->skill_id;
-    skill_lv = ms->skill_lv;
-
-    if (bool(md->opt1))
-        return 0;
-
-    if (skill_get_inf2(skill_id) & 0x200 && md->bl_id == target->bl_id)
-        return 0;
-
-    // 射程と障害物チェック
-    range = skill_get_range(skill_id, skill_lv);
-    if (range < 0)
-        range = battle_get_range(md) - (range + 1);
-
-    if (!battle_check_range(md, target, range))
-        return 0;
-
-//  delay=skill_delayfix(md, skill_get_delay( skill_id,skill_lv) );
-
-    interval_t casttime = skill_castfix(md, ms->casttime);
-    md->state.skillcastcancel = ms->cancel;
-    md->skilldelayup[ms - &get_mob_db(md->mob_class).skills.front()] = gettick();
-
-    if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
-                target->bl_id, skill_id, skill_lv,
-                static_cast<uint32_t>(casttime.count()), md->mob_class);
-
-    if (casttime <= interval_t::zero())          // 詠唱の無いものはキャンセルされない
-        md->state.skillcastcancel = 0;
-
-    md->skilltarget = target->bl_id;
-    md->skillx = 0;
-    md->skilly = 0;
-    md->skillid = skill_id;
-    md->skilllv = skill_lv;
-    md->skillidx = &skill_idx;
-
-    if (casttime > interval_t::zero())
-    {
-        md->skilltimer = Timer(gettick() + casttime,
-                std::bind(mobskill_castend_id, ph::_1, ph::_2,
-                    md->bl_id));
-    }
-    else
-    {
-        assert (!md->skilltimer);
-        mobskill_castend_id(nullptr, gettick(), md->bl_id);
-    }
-
-    return 1;
-}
-
-/*==========================================
- * スキル使用（場所指定）
- *------------------------------------------
- */
-static
-int mobskill_use_pos(dumb_ptr<mob_data> md,
-        int skill_x, int skill_y, mob_skill& skill_idx)
-{
-    int range;
-    struct mob_skill *ms;
-    struct block_list bl;
-    int skill_lv;
-
-    nullpo_retz(md);
-    ms = &skill_idx;
-
-    if (md->bl_prev == nullptr)
-        return 0;
-
-    SkillID skill_id = ms->skill_id;
-    skill_lv = ms->skill_lv;
-
-    if (bool(md->opt1))
-        return 0;
-
-    // 射程と障害物チェック
-    bl.bl_type = BL::NUL;
-    bl.bl_m = md->bl_m;
-    bl.bl_x = skill_x;
-    bl.bl_y = skill_y;
-    range = skill_get_range(skill_id, skill_lv);
-    if (range < 0)
-        range = battle_get_range(md) - (range + 1);
-    if (!battle_check_range(md, dumb_ptr<block_list>(&bl), range))
-        return 0;
-
-//  delay=skill_delayfix(sd, skill_get_delay( skill_id,skill_lv) );
-    interval_t casttime = skill_castfix(md, ms->casttime);
-    md->skilldelayup[ms - &get_mob_db(md->mob_class).skills.front()] = gettick();
-    md->state.skillcastcancel = ms->cancel;
-
-    if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
-                skill_x, skill_y, skill_id, skill_lv,
-                static_cast<uint32_t>(casttime.count()), md->mob_class);
-
-    if (casttime <= interval_t::zero())
-        // A skill without a cast time wont be cancelled.
-        md->state.skillcastcancel = 0;
-
-    md->skillx = skill_x;
-    md->skilly = skill_y;
-    md->skilltarget = BlockId();
-    md->skillid = skill_id;
-    md->skilllv = skill_lv;
-    md->skillidx = &skill_idx;
-    if (casttime > interval_t::zero())
-    {
-        md->skilltimer = Timer(gettick() + casttime,
-                std::bind(mobskill_castend_pos, ph::_1, ph::_2,
-                    md->bl_id));
-    }
-    else
-    {
-        assert (!md->skilltimer);
-        mobskill_castend_pos(nullptr, gettick(), md->bl_id);
-    }
-
-    return 1;
-}
-
 /*==========================================
  * Skill use judging
  *------------------------------------------
  */
-int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
-        MobSkillCondition event)
+int mobskill_use(dumb_ptr<mob_data> md)
 {
     int max_hp;
 
@@ -3286,88 +3031,11 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     if (md->state.special_mob_ai)
         return 0;
 
-    for (mob_skill& msii : ms)
-    {
-        tick_t& sdii = md->skilldelayup[&msii - &ms.front()];
-        int flag = 0;
-
-        // ディレイ中
-        if (tick < sdii + msii.delay)
-            continue;
-
-        // 状態判定
-        if (msii.state != MobSkillState::ANY && msii.state != md->state.skillstate)
-            continue;
-
-        // Note: these *may* both be MobSkillCondition::ANY
-        flag = (event == msii.cond1);
-        if (!flag)
-        {
-            switch (msii.cond1)
-            {
-                case MobSkillCondition::MSC_ALWAYS:
-                    flag = 1;
-                    break;
-                case MobSkillCondition::MSC_MYHPLTMAXRATE:    // HP< maxhp%
-                    flag = (md->hp < max_hp * msii.cond2i / 100);
-                    break;
-                case MobSkillCondition::MSC_NOTINTOWN:     // Only outside of towns.
-                    flag = !md->bl_m->flag.get(MapFlag::TOWN);
-                    break;
-                case MobSkillCondition::MSC_SLAVELT:  // slave < num
-                    flag = (mob_countslave(md) < msii.cond2i);
-                    break;
-                case MobSkillCondition::MSC_SLAVELE:  // slave <= num
-                    flag = (mob_countslave(md) <= msii.cond2i);
-                    break;
-            }
-        }
-
-        // 確率判定
-        if (flag && random_::chance({msii.permillage, 10000}))
-        {
-
-            if (skill_get_inf(msii.skill_id) & 2)
-            {
-                // 場所指定
-                dumb_ptr<block_list> bl = nullptr;
-                int x = 0, y = 0;
-                {
-                    if (msii.target == MobSkillTarget::MST_TARGET)
-                        bl = map_id2bl(md->target_id);
-                    else
-                        bl = md;
-
-                    if (bl)
-                    {
-                        x = bl->bl_x;
-                        y = bl->bl_y;
-                    }
-                }
-                if (x <= 0 || y <= 0)
-                    continue;
-                if (!mobskill_use_pos(md, x, y, msii))
-                    return 0;
-            }
-            else
-            {
-                {
-                    dumb_ptr<block_list> bl = nullptr;
-                    if (msii.target == MobSkillTarget::MST_TARGET)
-                        bl = map_id2bl(md->target_id);
-                    else
-                        bl = md;
-                    if (bl && !mobskill_use_id(md, bl, msii))
-                        return 0;
-                }
-            }
-            if (msii.emotion >= 0)
-                clif_emotion(md, msii.emotion);
-            return 1;
-        }
-    }
-
-    return 0;
+    PRINTF("Searching..\n"_fmt);
+    NpcEvent mobskill = mobskills_by_events.get(md->mob_class);
+    // npc_event needs to accept any block_id
+    //npc_event(md, mobskill, 0);
+    return 1;
 }
 
 /*==========================================
@@ -3379,13 +3047,13 @@ int mobskill_event(dumb_ptr<mob_data> md, BF flag)
     nullpo_retz(md);
 
     if (flag == BF::NEGATIVE_1
-        && mobskill_use(md, gettick(), MobSkillCondition::ANY))
+        && mobskill_use(md))
         return 1;
     if (bool(flag & BF::SHORT)
-        && mobskill_use(md, gettick(), MobSkillCondition::ANY))
+        && mobskill_use(md))
         return 1;
     if (bool(flag & BF::LONG)
-        && mobskill_use(md, gettick(), MobSkillCondition::ANY))
+        && mobskill_use(md))
         return 1;
     return 0;
 }
@@ -3590,156 +3258,6 @@ bool mob_readdb(ZString filename)
 
             if (get_mob_db(mob_class).base_exp == 0)
                 get_mob_db(mob_class).base_exp = mob_gen_exp(&get_mob_db(mob_class));
-        }
-        PRINTF("read %s done\n"_fmt, filename);
-    }
-    return rv;
-}
-
-static
-bool impl_extract(XString str, MobSkillCondition *msc)
-{
-    const struct
-    {
-        LString str;
-        MobSkillCondition id;
-    } cond1[] =
-    {
-        {"always"_s, MobSkillCondition::MSC_ALWAYS},
-        {"myhpltmaxrate"_s, MobSkillCondition::MSC_MYHPLTMAXRATE},
-        {"notintown"_s, MobSkillCondition::MSC_NOTINTOWN},
-        {"slavelt"_s, MobSkillCondition::MSC_SLAVELT},
-        {"slavele"_s, MobSkillCondition::MSC_SLAVELE},
-    };
-    for (auto& pair : cond1)
-        if (str == pair.str)
-        {
-            *msc = pair.id;
-            return true;
-        }
-    return false;
-}
-
-static
-bool impl_extract(XString str, MobSkillState *mss)
-{
-    const struct
-    {
-        LString str;
-        MobSkillState id;
-    } state[] =
-    {
-        {"any"_s, MobSkillState::ANY},
-        {"idle"_s, MobSkillState::MSS_IDLE},
-        {"walk"_s, MobSkillState::MSS_WALK},
-        {"attack"_s, MobSkillState::MSS_ATTACK},
-    };
-    for (auto& pair : state)
-        if (str == pair.str)
-        {
-            *mss = pair.id;
-            return true;
-        }
-    return false;
-}
-
-static
-bool impl_extract(XString str, MobSkillTarget *mst)
-{
-    const struct
-    {
-        LString str;
-        MobSkillTarget id;
-    } target[] =
-    {
-        {"target"_s, MobSkillTarget::MST_TARGET},
-        {"self"_s, MobSkillTarget::MST_SELF},
-    };
-    for (auto& pair : target)
-        if (str == pair.str)
-        {
-            *mst = pair.id;
-            return true;
-        }
-    return false;
-}
-
-bool mob_readskilldb(ZString filename)
-{
-    bool rv = true;
-    {
-        io::ReadFile in(filename);
-        if (!in.is_open())
-        {
-            PRINTF("can't read %s\n"_fmt, filename);
-            return false;
-        }
-        AString line;
-        while (in.getline(line))
-        {
-            Species mob_id;
-
-            if (is_comment(line))
-                continue;
-
-            XString blah;
-            if (extract(line, record<','>(&mob_id, &blah)) && mobdb_checkid(mob_id) != Species() && blah == "clear"_s)
-            {
-                get_mob_db(mob_id).skills.clear();
-                continue;
-            }
-
-            struct mob_skill msv {};
-            msv.emotion = -1;
-            int casttime, delay;
-            XString cancellable;
-
-            if (!extract(
-                        line,
-                        record<',', 17>(
-                            &mob_id,
-                            &blah,
-                            &msv.state,
-                            &msv.skill_id,
-                            &msv.skill_lv,
-                            &msv.permillage,
-                            &casttime,
-                            &delay,
-                            &cancellable,
-                            &msv.target,
-                            &msv.cond1,
-                            &msv.cond2i,
-                            &msv.val[0],
-                            &msv.val[1],
-                            &msv.val[2],
-                            &msv.val[3],
-                            &msv.val[4],
-
-                            &msv.emotion
-                        )
-                    )
-            )
-                continue;
-            if (cancellable == "yes"_s)
-                msv.cancel = true;
-            else if (cancellable == "no"_s)
-                msv.cancel = false;
-            else
-            {
-                rv = false;
-                continue;
-            }
-
-            msv.casttime = std::chrono::milliseconds(casttime);
-            msv.delay = std::chrono::milliseconds(delay);
-
-            if (mobdb_checkid(mob_id) == Species())
-            {
-                rv = false;
-                continue;
-            }
-
-            get_mob_db(mob_id).skills.push_back(std::move(msv));
         }
         PRINTF("read %s done\n"_fmt, filename);
     }

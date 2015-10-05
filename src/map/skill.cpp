@@ -326,11 +326,11 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
                     BlockId target = md->target_id;
                     if (src->bl_type == BL::PC)
                         md->target_id = src->bl_id;
-                    mobskill_use(md, tick, MobSkillCondition::ANY);
+                    mobskill_use(md);
                     md->target_id = target;
                 }
                 else
-                    mobskill_use(md, tick, MobSkillCondition::ANY);
+                    mobskill_use(md);
             }
         }
     }
