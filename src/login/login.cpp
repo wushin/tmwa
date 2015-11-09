@@ -441,8 +441,6 @@ bool impl_extract(XString line, AuthData *ad)
     if (sex.size() != 1)
         return false;
     ad->sex  = sex_from_char(sex.front());
-    if (ad->sex == SEX::NEUTRAL)
-        return false;
 
     if (!e_mail_check(ad->email))
         ad->email = DEFAULT_EMAIL;
@@ -1193,10 +1191,18 @@ void parse_fromchar(Session *s)
                         {
                             {
                                 SEX sex;
-                                if (ad.sex == SEX::FEMALE)
+                                switch (ad.sex)
+                                {
+                                case SEX::FEMALE:
                                     sex = SEX::MALE;
-                                else
+                                    break;
+                                case SEX::MALE:
+                                    sex = SEX::NEUTRAL;
+                                    break;
+                                default:
                                     sex = SEX::FEMALE;
+                                    break;
+                                }
                                 LOGIN_LOG("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n"_fmt,
                                         server[id].name, acc,
                                         sex_to_char(sex),
@@ -1504,7 +1510,7 @@ void parse_admin(Session *s)
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n"_fmt,
                                 ip);
                     }
-                    else if (ma.sex != SEX::FEMALE && ma.sex != SEX::MALE)
+                    else if (ma.sex != SEX::FEMALE && ma.sex != SEX::MALE && ma.sex != SEX::NEUTRAL)
                     {
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)\n"_fmt,
                                 ma.userid, ip);
@@ -1765,7 +1771,7 @@ void parse_admin(Session *s)
 
                 {
                     SEX sex = fixed.sex;
-                    if (sex != SEX::FEMALE && sex != SEX::MALE)
+                    if (sex != SEX::FEMALE && sex != SEX::MALE && sex != SEX::NEUTRAL)
                     {
                         LOGIN_LOG("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)\n"_fmt,
                                 account_name, sex_to_char(sex), ip);

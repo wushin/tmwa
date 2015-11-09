@@ -113,7 +113,8 @@ enum class SEX : uint8_t
     MALE = 1,
     // For items. This is also used as error, sometime.
     // TODO switch to Option<SEX> where appropriate.
-    NEUTRAL = 2,
+    UNSPECIFIED = 2,
+    NEUTRAL = 3,
 };
 inline
 char sex_to_char(SEX sex)
@@ -122,6 +123,7 @@ char sex_to_char(SEX sex)
     {
     case SEX::FEMALE: return 'F';
     case SEX::MALE: return 'M';
+    case SEX::NEUTRAL: return 'N';
     default: return '\0';
     }
 }
@@ -132,7 +134,8 @@ SEX sex_from_char(char c)
     {
     case 'F': return SEX::FEMALE;
     case 'M': return SEX::MALE;
-    default: return SEX::NEUTRAL;
+    case 'N': return SEX::NEUTRAL;
+    default: return SEX::UNSPECIFIED;
     }
 }
 
