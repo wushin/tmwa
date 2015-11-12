@@ -1179,7 +1179,7 @@ void parse_fromchar(Session *s)
             case 0x2727:       // Change of sex (sex is reversed)
             {
                 Packet_Fixed<0x2727> fixed;
-                rv = recv_fpacket<0x2727, 6>(s, fixed);
+                rv = recv_fpacket<0x2727, 7>(s, fixed);
                 if (rv != RecvResult::Complete)
                     break;
 
@@ -1190,19 +1190,7 @@ void parse_fromchar(Session *s)
                         if (ad.account_id == acc)
                         {
                             {
-                                SEX sex;
-                                switch (ad.sex)
-                                {
-                                case SEX::FEMALE:
-                                    sex = SEX::MALE;
-                                    break;
-                                case SEX::MALE:
-                                    sex = SEX::NEUTRAL;
-                                    break;
-                                default:
-                                    sex = SEX::FEMALE;
-                                    break;
-                                }
+                                SEX sex = fixed.sex;
                                 LOGIN_LOG("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n"_fmt,
                                         server[id].name, acc,
                                         sex_to_char(sex),
