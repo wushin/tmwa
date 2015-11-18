@@ -124,7 +124,7 @@ char sex_to_char(SEX sex)
     case SEX::FEMALE: return 'F';
     case SEX::MALE: return 'M';
     case SEX::NEUTRAL: return 'N';
-    default: return '\0';
+    default: return 'S';
     }
 }
 inline

@@ -235,6 +235,16 @@ AString mmo_char_tostr(struct CharPair *cp)
     {
         p->last_point = char_conf.start_point;
     }
+    if (p->sex == SEX::UNSPECIFIED)
+    {
+        for (AuthFifoEntry& afi : auth_fifo)
+        {
+            if (afi.account_id == k->account_id)
+            {
+                p->sex = afi.sex;
+            }
+        }
+    }
 
     MString str_p;
     str_p += STRPRINTF(
@@ -385,8 +395,9 @@ bool impl_extract(XString str, CharPair *cp)
         return false;
 
     if (sex.size() != 1)
-        return false;
-    p->sex = sex_from_char(sex.front());
+        p->sex = SEX::UNSPECIFIED;
+    else
+        p->sex = sex_from_char(sex.front());
     // leftover corruption from Platinum
     if (hair_style == "-1"_s)
     {
@@ -982,7 +993,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         sel.stats.dex = saturate<uint8_t>(p->attrs[ATTR::DEX]);
         sel.stats.luk = saturate<uint8_t>(p->attrs[ATTR::LUK]);
         sel.char_num = k->char_num;
-        sel.unused = 0;
+        if (p->sex == SEX::UNSPECIFIED)
+            sel.sex = sd->sex;
+        else
+            sel.sex = p->sex;
 
         repeat_6b.push_back(info);
     }
