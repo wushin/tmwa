@@ -3511,7 +3511,6 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             pc_calcstatus(sd, 0);
             chrif_save(sd);
-            sd->login_id1++;
             clif_fixpcpos(sd);
             chrif_char_ask_name(AccountId(), sd->status_key.name, operation, HumanTimeDiff());
             break;
