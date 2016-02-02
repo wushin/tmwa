@@ -3487,26 +3487,23 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            int operation;
             switch (val)
             {
             case 0:
                 sd->sex = sd->status.sex = SEX::FEMALE;
-                operation = 5;
                 break;
             case 1:
                 sd->sex = sd->status.sex = SEX::MALE;
-                operation = 6;
                 break;
             default:
                 sd->sex = sd->status.sex = SEX::NEUTRAL;
-                operation = 7;
                 break;
             }
             for (IOff0 j : IOff0::iter())
             {
                 if (sd->status.inventory[j].nameid
-                    && bool(sd->status.inventory[j].equip))
+                    && bool(sd->status.inventory[j].equip)
+                    && !pc_isequip(sd, j))
                     pc_unequipitem(sd, j, CalcStatus::LATER);
             }
             pc_calcstatus(sd, 0);
