@@ -3352,13 +3352,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (src && src->bl_type == BL::PC)
     {
         // [Fate] PK death, trigger scripts
-        argrec_t arg[3] =
+        argrec_t arg[1] =
         {
-            {"@killerrid"_s, static_cast<int32_t>(unwrap<BlockId>(src->bl_id))},
             {"@victimrid"_s, static_cast<int32_t>(unwrap<BlockId>(sd->bl_id))},
-            {"@victimlvl"_s, sd->status.base_level},
         };
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
         npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
 
         sd->state.pvp_rank = 0;
