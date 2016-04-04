@@ -202,23 +202,23 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
     auto pair = magic_tokenise(source_invocation);
     // Spell Cast
     NpcEvent spell_event = spell_event2id(pair.first);
-    PRINTF("Cast: %s\n"_fmt, RString(pair.first));
 
     RString spell_params = pair.second;
 
-    dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
-
-    if (nd)
+    if (spell_event.npc)
     {
-        PRINTF("NPC:  '%s' %d\n"_fmt, nd->name, nd->bl_id);
-        PRINTF("Params:  '%s'\n"_fmt, spell_params);
-        argrec_t arg[1] =
-        {
-            {"@args$"_s, spell_params},
-        };
+        dumb_ptr<npc_data> nd = npc_name2id(spell_event.npc);
 
-        npc_event(caster, spell_event, 0, arg);
-        return 1;
+        if (nd)
+        {
+            argrec_t arg[1] =
+            {
+                {"@args$"_s, spell_params},
+            };
+
+            npc_event(caster, spell_event, 0, arg);
+            return 1;
+        }
     }
     return 0;
 }

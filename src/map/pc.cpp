@@ -2731,7 +2731,8 @@ int pc_attack(dumb_ptr<map_session_data> sd, BlockId target_id, int type)
 
     if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
-        npc_click(sd, target_id);
+        if (battle_get_class(bl) != INVISIBLE_CLASS && !pc_isdead(sd))
+            npc_click(sd, target_id);
         return 0;
     }
 
@@ -3527,6 +3528,12 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
             break;
         case SP::CHAR_ID:
             val = sd ? unwrap<CharId>(sd->status_key.char_id) : 0;
+            break;
+        case SP::ELTLVL:
+            val = static_cast<int>(battle_get_element(sd).level);
+            break;
+        case SP::ELTTYPE:
+            val = static_cast<int>(battle_get_element(sd).element);
             break;
     }
 

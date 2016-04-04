@@ -618,28 +618,6 @@ void builtin_heal(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_elttype(ScriptState *st)
-{
-    int element_type = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).element);
-    push_int<ScriptDataInt>(st->stack, element_type);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_eltlvl(ScriptState *st)
-{
-    int element_lvl = static_cast<int>(battle_get_element(map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))))).level);
-    push_int<ScriptDataInt>(st->stack, element_lvl);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
 void builtin_distance(ScriptState *st)
 {
     dumb_ptr<block_list> source = map_id2bl(wrap<BlockId>(conv_num(st, &AARG(0))));
@@ -867,7 +845,7 @@ void builtin_requestitem(ScriptState *st)
                 RString item_name = i_data.pmd_pget(&item_data::name).copy_or(stringish<ItemName>(""_s));
                 if (item_name == ""_s)
                     goto fail;
-                if (prefix == '.' && name[1] == '@')
+                if (name.startswith(".@"_s))
                 {
                     struct script_data vd = script_data(ScriptDataStr{item_name});
                     set_scope_reg(st, reg.iplus(j), &vd);
@@ -877,7 +855,7 @@ void builtin_requestitem(ScriptState *st)
             }
             else
             {
-                if (prefix == '.' && name[1] == '@')
+                if (name.startswith(".@"_s))
                 {
                     struct script_data vd = script_data(ScriptDataInt{num});
                     set_scope_reg(st, reg.iplus(j), &vd);
@@ -921,7 +899,7 @@ void builtin_requestlang(ScriptState *st)
     {
         // Second time (rerunline)
         sd->state.menu_or_input = 0;
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
         {
             struct script_data vd = script_data(ScriptDataStr{sd->npc_str});
             set_scope_reg(st, reg, &vd);
@@ -1135,7 +1113,6 @@ void builtin_puppet(ScriptState *st)
 
     // PlayerName::SpellName
     NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARG(3))));
-    PRINTF("Npc: %s\n"_fmt, npc);
     nd->name = npc;
 
     // Dynamically set location
@@ -1285,7 +1262,7 @@ void builtin_set(ScriptState *st)
             get_val(st, sdata);
             if(prefix == '.')
             {
-                if (name_[1] == '@')
+                if (name_.startswith(".@"_s))
                 {
                     PRINTF("builtin_set: illegal scope!\n"_fmt);
                     return;
@@ -1322,7 +1299,7 @@ void builtin_set(ScriptState *st)
         {
             if(prefix == '.')
             {
-                if (name_[1] == '@')
+                if (name_.startswith(".@"_s))
                 {
                         set_scope_reg(st, reg, &AARG(1));
                     return;
@@ -1464,14 +1441,14 @@ void builtin_cleararray(ScriptState *st)
         PRINTF("builtin_cleararray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
+    if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
+    else if (prefix != '$' && !name.startswith(".@"_s))
         bl = map_id2bl(st->rid)->is_player();
 
     for (int i = 0; i < sz; i++)
     {
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
             set_scope_reg(st, reg.iplus(i), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(i), conv_str(st, &AARG(1)));
@@ -3520,7 +3497,7 @@ void builtin_explode(ScriptState *st)
         PRINTF("builtin_explode: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
+    if (prefix == '.' && !name.startswith(".@"_s))
         bl = map_id2bl(st->oid)->is_npc();
     else if (prefix != '$' && prefix != '.')
         bl = map_id2bl(st->rid)->is_player();
@@ -3530,7 +3507,7 @@ void builtin_explode(ScriptState *st)
         auto find = std::find(str.begin(), str.end(), separator);
         if (find == str.end())
         {
-            if (prefix == '.' && name[1] == '@')
+            if (name.startswith(".@"_s))
             {
                 struct script_data vd = script_data(ScriptDataInt{atoi(str.c_str())});
                 if (postfix == '$')
@@ -3547,7 +3524,7 @@ void builtin_explode(ScriptState *st)
             val = str.xislice_h(find);
             str = str.xislice_t(find + 1);
 
-            if (prefix == '.' && name[1] == '@')
+            if (name.startswith(".@"_s))
             {
                 struct script_data vd = script_data(ScriptDataInt{atoi(val.c_str())});
                 if (postfix == '$')
@@ -3815,7 +3792,7 @@ void builtin_get(ScriptState *st)
 
     if(prefix == '.')
     {
-        if (name_[1] == '@')
+        if (name_.startswith(".@"_s))
         {
             PRINTF("builtin_get: illegal scope!\n"_fmt);
             return;
@@ -3873,7 +3850,7 @@ void builtin_get(ScriptState *st)
         int var;
         if (prefix == '#' && bl)
         {
-            if (name_[1] == '#')
+            if (name_.startswith("##"_s))
                 var = pc_readaccountreg2(bl->is_player(), stringish<VarName>(name_));
             else
                 var = pc_readaccountreg(bl->is_player(), stringish<VarName>(name_));
@@ -4576,8 +4553,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(warp, "Mxy"_s, '\0'),
     BUILTIN(areawarp, "MxyxyMxy"_s, '\0'),
     BUILTIN(heal, "ii?"_s, '\0'),
-    BUILTIN(elttype, "i"_s, 'i'),
-    BUILTIN(eltlvl, "i"_s, 'i'),
     BUILTIN(injure, "iii"_s, '\0'),
     BUILTIN(input, "N"_s, '\0'),
     BUILTIN(requestitem, "N?"_s, '\0'),

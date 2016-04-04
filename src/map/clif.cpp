@@ -4378,6 +4378,8 @@ RecvResult clif_parse_NpcClicked(Session *s, dumb_ptr<map_session_data> sd)
     }
     if (sd->npc_id)
         return rv;
+    if (battle_get_class(map_id2bl(fixed.block_id)) == INVISIBLE_CLASS)
+        return rv;
     npc_click(sd, fixed.block_id);
 
     return rv;
