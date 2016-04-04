@@ -1102,7 +1102,7 @@ void builtin_destroy(ScriptState *st)
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     if(!nd)
         return;
-    assert(nd->disposable == true);
+    //assert(nd->disposable == true); we don't care about it anymore
     npc_free(nd);
     if (!HARG(0))
         st->state = ScriptEndState::END;
@@ -1351,6 +1351,35 @@ void builtin_set(ScriptState *st)
 
 }
 
+static
+int getarraysize2(SIR reg, dumb_ptr<block_list> bl)
+{
+    int i = reg.index(), c = i;
+    for (; i < 256; i++)
+    {
+        struct script_data vd = ScriptDataVariable{reg.iplus(i)};
+        get_val(bl, &vd);
+        MATCH_BEGIN (vd)
+        {
+            MATCH_CASE (const ScriptDataStr&, u)
+            {
+                if (u.str[0])
+                    c = i;
+                continue;
+            }
+            MATCH_CASE (const ScriptDataInt&, u)
+            {
+                if (u.numi)
+                    c = i;
+                continue;
+            }
+        }
+        MATCH_END ();
+        abort();
+    }
+    return c + 1;
+}
+
 /*==========================================
  * 配列変数設定
  *------------------------------------------
@@ -1363,20 +1392,51 @@ void builtin_setarray(ScriptState *st)
     ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
+    int i = 1, j = 0;
 
     if (prefix != '$' && prefix != '@' && prefix != '.')
     {
         PRINTF("builtin_setarray: illegal scope!\n"_fmt);
         return;
     }
-    if (prefix == '.' && name[1] != '@')
-        bl = map_id2bl(st->oid)->is_npc();
-    else if (prefix != '$' && !(prefix == '.' && name[1] == '@'))
+    if (prefix == '.' && !name.startswith(".@"_s))
+    {
+        struct script_data *sdata = &AARG(1);
+        get_val(st, sdata);
+        i++; // 2nd argument is npc, not an array element
+        if (sdata->is<ScriptDataStr>())
+        {
+            ZString tn = conv_str(st, sdata);
+            if (tn == ""_s || tn == "oid"_s)
+                bl = map_id2bl(st->oid)->is_npc();
+            else
+            {
+                NpcName name_ = stringish<NpcName>(tn);
+                bl = npc_name2id(name_);
+            }
+        }
+        else
+        {
+            int tid = conv_num(st, sdata);
+            if (tid == 0)
+                bl = map_id2bl(st->oid)->is_npc();
+            else
+               bl = map_id2bl(wrap<BlockId>(tid))->is_npc();
+        }
+        if (!bl)
+        {
+            PRINTF("builtin_setarray: npc not found\n"_fmt);
+            return;
+        }
+        if (st->oid && bl->bl_id != st->oid)
+            j = getarraysize2(reg, bl);
+    }
+    else if (prefix != '$' && !name.startswith(".@"_s))
         bl = map_id2bl(st->rid)->is_player();
 
-    for (int j = 0, i = 1; i < st->end - st->start - 2 && j < 256; i++, j++)
+    for (; i < st->end - st->start - 2 && j < 256; i++, j++)
     {
-        if (prefix == '.' && name[1] == '@')
+        if (name.startswith(".@"_s))
             set_scope_reg(st, reg.iplus(j), &AARG(i));
         else if (postfix == '$')
             set_reg(bl, VariableCode::VARIABLE, reg.iplus(j), conv_str(st, &AARG(i)));
@@ -3439,7 +3499,7 @@ void builtin_chr(ScriptState *st)
 static
 void builtin_ord(ScriptState *st)
 {
-    const char ascii = conv_str(st, &AARG(0))[0];
+    const char ascii = conv_str(st, &AARG(0)).front();
     push_int<ScriptDataInt>(st->stack, static_cast<int>(ascii));
 }
 
@@ -3449,7 +3509,7 @@ void builtin_explode(ScriptState *st)
     dumb_ptr<block_list> bl = nullptr;
     SIR reg = AARG(0).get_if<ScriptDataVariable>()->reg;
     ZString name = variable_names.outtern(reg.base());
-    const char separator = conv_str(st, &AARG(2))[0];
+    const char separator = conv_str(st, &AARG(2)).front();
     RString str = conv_str(st, &AARG(1));
     RString val;
     char prefix = name.front();
