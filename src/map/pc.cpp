@@ -3485,7 +3485,10 @@ int pc_readparam(dumb_ptr<block_list> bl, SP type)
         case SP::INT:
         case SP::DEX:
         case SP::LUK:
-            val = battle_get_stat(type, bl);
+            if (bl && bl->bl_type == BL::PC)
+                val = bl->is_player()->status.attrs[sp_to_attr(type)];
+            else
+                val = battle_get_stat(type, bl);
             break;
         case SP::SPEED:
             val = battle_get_speed(bl).count();
