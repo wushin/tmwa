@@ -5230,7 +5230,7 @@ RecvResult clif_parse_GuildMessage(Session *s, dumb_ptr<map_session_data> sd)
     if (is_atcommand(s, sd, mbuf, GmLevel()))
         return rv;
 
-    if (!magic::magic_message(sd, mbuf))
+    if (!magic_message(sd, mbuf))
     {
         /* Don't send chat that results in an automatic ban. */
         if (tmw_CheckChatSpam(sd, mbuf))
@@ -5604,7 +5604,7 @@ int clif_guild_message(GuildPair g, XString mes)
         Packet_Head<0x017f> head_7f;
         //head_7f.account_id = account_id;
         Buffer buf = create_vpacket<0x017f, 4, 1>(head_7f, mes);
-        clif_send(buf, sd, SendWho::GUILD, MIN_CLIENT_VERSION);
+        clif_send(buf, sd, SendWho::GUILD, wrap<ClientVersion>(2));
     }
 
     return 0;
